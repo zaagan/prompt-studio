@@ -1,0 +1,205 @@
+# Electron Dual-Mode App Boilerplate Instructions for Claude Code
+
+Please create a complete Electron application with the following specifications:
+
+## Core Requirements
+
+### 1. Dual Mode Operation
+- **Desktop Mode**: Traditional windowed application (1200x800px)
+- **Menu Bar Mode**: Small dropdown window from system tray/menu bar (400x600px)
+- Toggle between modes via context menu
+- Save mode preference in database
+- Force desktop mode on first run to ensure visibility
+
+### 2. Database Integration
+- Use SQLite3 as the primary database
+- Create database initialization module with:
+  - Connection management
+  - Table creation scripts
+  - Migration support
+- Store database in app's userData directory
+- Include basic CRUD operations module
+
+### 3. Project Structure
+```
+project-name/
+├── main.js                 # Main Electron process
+├── package.json           # Dependencies and scripts
+├── assets/
+│   └── icon.png          # App icon (256x256 PNG)
+├── scripts/
+│   ├── run.sh            # Quick run script (Unix)
+│   ├── run.bat           # Quick run script (Windows)
+│   ├── build-app.sh      # Build installer script (Unix)
+│   └── build-app.ps1     # Build script for Windows (PowerShell)
+├── src/
+│   ├── database/
+│   │   ├── init.js       # Database initialization
+│   │   └── queries.js    # Database operations
+│   └── renderer/
+│       ├── index.html    # Main window
+│       ├── menubar.html  # Menu bar window
+│       ├── renderer.js   # Main window logic
+│       ├── menubar-renderer.js # Menu bar logic
+│       ├── styles.css    # Main window styles
+│       └── menubar-styles.css # Menu bar styles
+└── README.md            # Documentation
+```
+
+### 4. Package.json Configuration
+Include these dependencies:
+```json
+{
+  "dependencies": {
+    "electron-store": "^10.1.0",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "electron": "^37.2.5",
+    "electron-builder": "^26.0.12"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "run:unix": "bash ./scripts/run.sh",
+    "run:win": "scripts\run.bat",
+    "build:unix": "bash ./scripts/build-app.sh",
+    "build:win": "powershell ./scripts/build-app.ps1",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  }
+}
+```
+
+### 5. Main Process Features (main.js)
+- Create both desktop and menu bar windows
+- System tray icon with context menu
+- IPC handlers for database operations
+- App mode switching functionality
+- Proper window management (hide/show logic)
+- App name and metadata configuration
+
+### 6. Database Schema
+Create initial tables:
+```sql
+-- Settings table for app configuration
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Example data table
+CREATE TABLE IF NOT EXISTS items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 7. Renderer Features
+- **Main Window**: Full-featured interface with navigation
+- **Menu Bar Window**: Compact, essential features only
+- Shared styling with CSS variables
+- Responsive design for different window sizes
+- IPC communication with main process
+
+### 8. System Tray Integration
+- Programmatic icon creation (simple chart/graph symbol)
+- Context menu with:
+  - Show/Hide app
+  - Switch mode (Desktop ↔ Menu Bar)
+  - Quit application
+- Template image for dark/light mode compatibility
+- Proper event handling for clicks
+
+### 9. Build Scripts
+
+#### run.sh (Development, Unix)
+```bash
+#!/bin/bash
+# Quick development runner for Unix
+# Check dependencies, install if needed, start app
+```
+
+#### run.bat (Development, Windows)
+```bat
+@echo off
+REM Quick development runner for Windows
+REM Check dependencies, install if needed, start app
+```
+
+#### build-app.sh (Production, Unix)
+```bash
+#!/bin/bash
+# Production build script for Unix
+# Create distributable packages for current platform
+```
+
+#### build-app.ps1 (Production, Windows PowerShell)
+```powershell
+# Production build script for Windows PowerShell
+# Create distributable packages for current platform
+```
+
+### 10. Error Handling
+- Database connection errors
+- Missing dependencies
+- Platform-specific issues
+- Graceful fallbacks for all features
+
+### 11. Platform Compatibility
+- **macOS**: DMG installer, proper .icns icons
+- **Windows**: NSIS installer, .ico icons  
+- **Linux**: AppImage and .deb packages
+
+### 12. Development Features
+- Hot reload in dev mode
+- Console logging for debugging
+- Error boundaries and recovery
+- Proper cleanup on app exit
+
+## Implementation Notes
+
+1. **Start with desktop mode forced** to ensure the app window is visible
+2. **Use absolute paths** for all file references
+3. **Include comprehensive error logging** for troubleshooting
+4. **Test on ARM64 and x86_64** architectures
+5. **Follow Electron security best practices**
+6. **Include proper app metadata** (name, version, description)
+
+## File Templates Required
+
+1. **main.js** - Complete main process with all features
+2. **Database modules** - init.js and queries.js with full CRUD
+3. **HTML templates** - Both window types with proper structure
+4. **CSS files** - Clean, modern styling
+5. **Package.json** - Complete with all dependencies and scripts
+6. **Shell scripts** - Working run.sh, run.bat, build-app.sh, and build-app.ps1
+7. **README.md** - Full documentation and setup instructions
+
+## Testing Checklist
+
+After implementation, verify:
+- [ ] App starts in desktop mode with visible window
+- [ ] Database creates successfully in userData directory
+- [ ] System tray icon appears and functions
+- [ ] Mode switching works correctly
+- [ ] Build scripts create working installers
+- [ ] All IPC communication functions
+- [ ] App handles errors gracefully
+- [ ] Both window types render correctly
+
+## Example App Concept
+Create a simple "Task Manager" app that demonstrates all features:
+- Add/edit/delete tasks (database operations)
+- View tasks in both desktop and menu bar modes
+- Settings for app behavior
+- Task notifications/alerts
+
+This boilerplate should result in a fully functional, production-ready Electron application that can serve as a foundation for any desktop/menu bar app project.

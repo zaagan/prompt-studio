@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-electron
+build
+.next
+.nuxt
+.cache
+*.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
