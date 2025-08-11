@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { usePromptStore } from '@/stores/usePromptStore'
 import { cn } from '@/lib/utils'
 import { CategoryModal } from '../modals/category-modal'
+import { ThemeSwitcher } from '../ui/theme-switcher'
 import { parseSearchQuery, formatSearchQuery } from '@/lib/search-parser'
 import type { Category } from '@/types'
 
@@ -319,6 +320,9 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
 
           <div className="flex-1" />
           
+          {/* Theme Switcher */}
+          <ThemeSwitcher collapsed={true} />
+          
           {/* Settings */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -568,7 +572,10 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-2 border-t">
+      <div className="p-2 border-t space-y-1">
+        {/* Theme Switcher */}
+        <ThemeSwitcher />
+        
         <Button
           variant="ghost"
           size="sm"

@@ -55,7 +55,7 @@ export function TemplateManager() {
       <ScrollArea className="h-[500px]">
         <div className="space-y-4 pb-4">
           <div className="space-y-4">
-          {templates.length === 0 ? (
+            {templates.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />

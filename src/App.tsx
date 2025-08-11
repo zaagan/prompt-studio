@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ThemeProvider } from './components/theme/theme-provider'
+import { ThemeProvider } from './contexts/theme-context'
 import { Toaster } from './components/ui/toaster'
 import { DesktopLayout } from './components/layout/desktop-layout'
 import { MenuBarLayout } from './components/layout/menubar-layout'
@@ -46,7 +46,7 @@ function App() {
 
   if (loading) {
     return (
-      <ThemeProvider defaultTheme="system" storageKey="prompt-studio-theme">
+      <ThemeProvider>
         <div className="flex items-center justify-center h-screen bg-background">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -58,7 +58,7 @@ function App() {
   }
 
   return (
-    <ThemeProvider defaultTheme="system" storageKey="prompt-studio-theme">
+    <ThemeProvider>
       <div className="app">
         {mode === 'desktop' ? <DesktopLayout /> : <MenuBarLayout />}
         <Toaster />
