@@ -134,6 +134,23 @@ export function PromptCard({
           <Button
             variant="ghost"
             size="sm"
+            onClick={handleCopy}
+            className={cn(
+              "h-6 w-6 p-0",
+              isCardVariant ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100",
+              "transition-opacity"
+            )}
+          >
+            {justCopied ? (
+              <Check className="h-3 w-3 text-green-600" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleFavoriteToggle}
             className={cn(
               "h-6 w-6 p-0",
@@ -162,14 +179,6 @@ export function PromptCard({
                 <DropdownMenuItem onClick={handleEdit}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopy}>
-                  {justCopied ? (
-                    <Check className="h-4 w-4 mr-2 text-green-600" />
-                  ) : (
-                    <Copy className="h-4 w-4 mr-2" />
-                  )}
-                  {justCopied ? 'Copied!' : 'Copy Content'}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
