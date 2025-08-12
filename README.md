@@ -24,6 +24,7 @@ A powerful desktop application for managing, organizing, and testing AI prompts 
 - **Responsive Design**: Optimized for different screen sizes and orientations
 - **Keyboard Shortcuts**: Power-user shortcuts for all major actions
 - **System Tray Integration**: Quick access from your system tray/menu bar
+- **Crash Recovery**: Built-in crash reporting with detailed stack traces and restart functionality
 
 ### 📁 Data Management
 - **Import/Export**: Support for JSON and plain text formats
@@ -33,12 +34,15 @@ A powerful desktop application for managing, organizing, and testing AI prompts 
 
 ## 📋 Requirements
 
-- **Node.js**: Version 16.x or higher
-- **npm**: Version 8.x or higher
+- **Node.js**: Version 16.x or higher (18.x+ recommended)
+- **Package Manager**: 
+  - **pnpm**: Version 8.x or higher (recommended)
+  - **npm**: Version 8.x or higher (fallback)
 - **Operating System**: 
   - macOS 10.14 (Mojave) or later
   - Windows 10 or later
   - Linux (Ubuntu 18.04+ or equivalent)
+- **Architecture**: x64, arm64 (Apple Silicon), or ia32
 
 ## 🚀 Quick Start
 
@@ -78,12 +82,24 @@ The run scripts will automatically:
 
 2. **Install dependencies**
    ```bash
+   # Using pnpm (recommended)
+   pnpm install
+   
+   # Or using npm
    npm install
    ```
 
 3. **Start the application**
    ```bash
+   # Development mode with hot reload
+   pnpm run dev
+   # or
    npm run dev
+   
+   # Start Electron app in development
+   pnpm run electron:dev
+   # or
+   npm run electron:dev
    ```
 
 ## 🏗️ Building for Production
@@ -93,39 +109,66 @@ The run scripts will automatically:
 **Unix/macOS/Linux:**
 ```bash
 # Make the script executable (first time only)
-chmod +x scripts/build-app.sh
+chmod +x scripts/build.sh
 
-# Build for current platform
-./scripts/build-app.sh
+# Build for current platform with architecture detection
+./scripts/build.sh
 
 # Additional options
-./scripts/build-app.sh --clean    # Clean install dependencies
-./scripts/build-app.sh --help     # Show all options
+./scripts/build.sh --clean         # Clean install dependencies
+./scripts/build.sh --skip-tests    # Skip running tests
+./scripts/build.sh --force         # Force build despite test failures
+./scripts/build.sh --help          # Show all options
 ```
 
 **Windows (PowerShell):**
 ```powershell
 # Build for Windows
-.\scripts\build-app.ps1
+.\scripts\build.ps1
 
 # Additional options
-.\scripts\build-app.ps1 -Clean      # Clean install dependencies
-.\scripts\build-app.ps1 -Help       # Show all options
+.\scripts\build.ps1 -Clean         # Clean install dependencies
+.\scripts\build.ps1 -SkipTests     # Skip running tests
+.\scripts\build.ps1 -Force         # Force build despite test failures
+.\scripts\build.ps1 -Help          # Show all options
 ```
 
 ### Manual Building
 
 **For current platform:**
 ```bash
+# Using pnpm (recommended)
+pnpm run build
+
+# Using npm
 npm run build
 ```
 
 **For specific platforms:**
 ```bash
-npm run build:mac      # macOS (DMG and ZIP)
-npm run build:win      # Windows (NSIS installer and portable)
-npm run build:linux    # Linux (AppImage and DEB)
+# macOS builds (Universal: Intel + Apple Silicon)
+pnpm run build:mac      # DMG installer and ZIP archive
+npm run build:mac
+
+# Windows builds
+pnpm run build:win      # NSIS installer and portable exe
+npm run build:win
+
+# Linux builds
+pnpm run build:linux    # AppImage and DEB package
+npm run build:linux
 ```
+
+### Advanced Build Features
+
+The build scripts provide additional capabilities:
+
+- **Architecture Detection**: Automatically builds for your current architecture
+- **Code Signing**: macOS code signing (set `CODESIGN_IDENTITY` env var)
+- **Notarization**: macOS notarization (set `APPLE_ID`, `APPLE_ID_PASS`, `TEAM_ID`)
+- **Icon Generation**: Automatic conversion from PNG to platform-specific formats
+- **Native Module Rebuilding**: Ensures sqlite3 and other native modules work correctly
+- **Clean Builds**: Option to clean caches and rebuild everything from scratch
 
 The built applications will be available in the `dist/` directory.
 
@@ -190,46 +233,82 @@ Your prompt data is stored securely in:
 
 ```
 prompt-studio/
-├── main.js                 # Main Electron process
-├── preload.js             # Preload script for security
 ├── package.json           # Dependencies and scripts
+├── vite.config.ts         # Vite build configuration
+├── tailwind.config.js     # Tailwind CSS configuration
+├── tsconfig.json          # TypeScript configuration
 ├── assets/                # App icons and resources
+│   ├── icon.png          # Base application icon
+│   ├── icon.icns         # macOS icon format
+│   └── tray-icon.png     # System tray icon
 ├── scripts/               # Build and run scripts
-│   ├── run.sh            # Unix development runner
-│   ├── run.bat           # Windows development runner
-│   ├── build-app.sh      # Unix production builder
-│   └── build-app.ps1     # Windows production builder
-└── src/
-    ├── database/          # Database layer
-    │   ├── init.js       # Database initialization
-    │   └── queries.js    # Database operations
-    └── renderer/          # Frontend code
-        ├── index.html    # Main window UI
-        ├── menubar.html  # Menu bar window UI
-        ├── renderer.js   # Main window logic
-        ├── menubar-renderer.js # Menu bar logic
-        ├── styles.css    # Main window styles
-        └── menubar-styles.css # Menu bar styles
+│   ├── run.sh/.bat       # Development runners
+│   └── build.sh/.ps1     # Production build scripts
+├── electron/              # Electron main process (TypeScript)
+│   ├── main.ts           # Main Electron process
+│   ├── preload.ts        # Preload script for security
+│   └── database/         # Database layer
+│       ├── init.ts       # Database initialization
+│       ├── queries.ts    # Database operations
+│       └── sample-data.ts # Sample data for first run
+└── src/                   # React frontend (TypeScript + Tailwind)
+    ├── App.tsx           # Main application component
+    ├── main.tsx          # React entry point
+    ├── index.css         # Global styles
+    ├── components/       # React components
+    │   ├── crash-handler.tsx    # Crash reporting system
+    │   ├── ui/           # Reusable UI components
+    │   ├── forms/        # Form components
+    │   ├── layout/       # Layout components
+    │   ├── prompts/      # Prompt-specific components
+    │   ├── settings/     # Settings components
+    │   ├── templates/    # Template components
+    │   ├── testing/      # API testing components
+    │   └── theme/        # Theme components
+    ├── contexts/         # React contexts
+    ├── hooks/            # Custom React hooks
+    ├── stores/           # Zustand state management
+    ├── types/            # TypeScript type definitions
+    └── lib/              # Utility functions
 ```
 
 ### Adding Features
 
-1. **Database Changes**: Update `src/database/init.js` for schema changes
-2. **UI Changes**: Modify HTML templates and CSS files
-3. **Logic Changes**: Update renderer scripts and main process handlers
-4. **IPC Communication**: Add new IPC handlers in `main.js` and `preload.js`
+1. **Database Changes**: Update `electron/database/init.ts` for schema changes
+2. **UI Components**: Create React components in `src/components/`
+3. **State Management**: Use Zustand stores in `src/stores/`
+4. **Type Definitions**: Add TypeScript types in `src/types/index.ts`
+5. **IPC Communication**: Add handlers in `electron/main.ts` and `electron/preload.ts`
+
+### Technology Stack
+
+- **Frontend**: React 18 + TypeScript + Tailwind CSS + Vite
+- **Backend**: Electron + Node.js + SQLite3
+- **State Management**: Zustand
+- **UI Components**: Radix UI primitives
+- **Build System**: Vite + Electron Builder
+- **Code Quality**: ESLint + Prettier + TypeScript
 
 ### Testing
 
 ```bash
 # Run in development mode
-npm run dev
+pnpm run dev
 
-# Run with debug logging
-NODE_ENV=development npm run dev
+# Start Electron with development tools
+pnpm run electron:dev
+
+# Type checking
+pnpm run typecheck
+
+# Linting
+pnpm run lint
+
+# Format code
+pnpm run format
 
 # Build and test production version
-npm run build
+pnpm run build
 ```
 
 ## 🚨 Troubleshooting
@@ -238,7 +317,12 @@ npm run build
 
 **Dependencies not installing:**
 ```bash
-# Clear npm cache and reinstall
+# Clear cache and reinstall (pnpm)
+pnpm store prune
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+
+# Clear cache and reinstall (npm)
 npm cache clean --force
 rm -rf node_modules package-lock.json
 npm install
@@ -247,22 +331,43 @@ npm install
 **SQLite compilation errors:**
 ```bash
 # Rebuild native modules
+pnpm rebuild sqlite3
+# or
 npm rebuild sqlite3
 
-# Or reinstall
-npm uninstall sqlite3
-npm install sqlite3
+# Force reinstall sqlite3
+pnpm remove sqlite3 && pnpm add sqlite3
+# or
+npm uninstall sqlite3 && npm install sqlite3
 ```
+
+**TypeScript errors:**
+```bash
+# Check types
+pnpm run typecheck
+
+# Clear TypeScript cache
+rm -rf dist-electron/
+pnpm run typecheck
+```
+
+**Application crashes:**
+- The app includes built-in crash reporting with detailed stack traces
+- Check the crash dialog that appears when errors occur
+- Copy the stack trace for debugging or reporting issues
+- Use the restart button in the crash dialog to recover
 
 **App won't start:**
 - Check that Node.js version is 16+ with `node --version`
-- Verify all dependencies installed with `npm list`
+- Verify all dependencies installed with `pnpm list` or `npm list`
 - Check console output for specific error messages
+- Try running `pnpm run electron:dev` for development mode debugging
 
 **Menu bar mode not showing:**
 - Look for the app icon in your system tray
 - Try right-clicking the tray icon for context menu
 - Switch to desktop mode if menu bar isn't visible
+- Check if the app is running in the background (Activity Monitor/Task Manager)
 
 ### Getting Help
 
@@ -307,6 +412,13 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## 🎯 Roadmap
 
+### Recent Updates
+- [x] **Crash Recovery System**: Built-in crash reporting with detailed stack traces
+- [x] **Modern Architecture**: Migrated to React + TypeScript + Vite
+- [x] **Enhanced Build System**: Architecture-aware builds with code signing support
+- [x] **UI Improvements**: Radix UI components with better accessibility
+- [x] **Theme System**: Improved dark/light mode switching
+
 ### Upcoming Features
 - [ ] Cloud sync capabilities
 - [ ] Collaborative prompt sharing
@@ -314,12 +426,16 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 - [ ] Plugin system for custom integrations
 - [ ] Mobile companion app
 - [ ] Advanced template variables and functions
+- [ ] Multi-language support
+- [ ] Advanced search with filters
+- [ ] Prompt performance analytics
 
 ### Known Limitations
 - No real-time collaboration yet
 - Limited to single-user scenarios
 - No cloud backup (local storage only)
 - API testing limited to OpenAI-compatible endpoints
+- No mobile version (desktop only)
 
 ## 📞 Support
 

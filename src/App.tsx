@@ -4,6 +4,7 @@ import { Toaster } from './components/ui/toaster'
 import { DesktopLayout } from './components/layout/desktop-layout'
 import { MenuBarLayout } from './components/layout/menubar-layout'
 import { usePromptStore } from './stores/usePromptStore'
+import { CrashHandler, setupGlobalErrorHandlers } from './components/crash-handler'
 import type { AppMode } from './types'
 
 function App() {
@@ -12,6 +13,9 @@ function App() {
   const fetchAllData = usePromptStore((state) => state.fetchAllData)
 
   useEffect(() => {
+    // Setup global error handlers on app initialization
+    setupGlobalErrorHandlers()
+    
     const initializeApp = async () => {
       try {
         // Get current mode from Electron
@@ -59,10 +63,12 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="app">
-        {mode === 'desktop' ? <DesktopLayout /> : <MenuBarLayout />}
-        <Toaster />
-      </div>
+      <CrashHandler>
+        <div className="app">
+          {mode === 'desktop' ? <DesktopLayout /> : <MenuBarLayout />}
+          <Toaster />
+        </div>
+      </CrashHandler>
     </ThemeProvider>
   )
 }
