@@ -5,6 +5,9 @@
 
 set -e  # Exit on any error
 
+# Global variables
+PACKAGE_MANAGER=""
+
 echo "🚀 Prompt Studio Development Runner"
 echo "=================================="
 
@@ -55,18 +58,31 @@ check_node() {
     fi
 }
 
-# Check if npm is installed
-check_npm() {
-    print_status "Checking npm installation..."
+# Check package manager (prefer pnpm, fallback to npm)
+check_package_manager() {
+    print_status "Checking package manager..."
     
-    if ! command -v npm &> /dev/null; then
-        print_error "npm is not installed!"
-        print_status "npm usually comes with Node.js installation"
-        exit 1
+    # Check for pnpm first (project preference)
+    if command -v pnpm &> /dev/null; then
+        PACKAGE_MANAGER="pnpm"
+        PNPM_VERSION=$(pnpm --version)
+        print_success "pnpm found: v$PNPM_VERSION"
+        return
     fi
     
-    NPM_VERSION=$(npm --version)
-    print_success "npm found: v$NPM_VERSION"
+    # Fallback to npm
+    if command -v npm &> /dev/null; then
+        PACKAGE_MANAGER="npm"
+        NPM_VERSION=$(npm --version)
+        print_success "npm found: v$NPM_VERSION"
+        return
+    fi
+    
+    print_error "No package manager found!"
+    print_status "Please install pnpm (recommended) or npm"
+    print_status "pnpm: npm install -g pnpm"
+    print_status "npm: usually comes with Node.js installation"
+    exit 1
 }
 
 # Check if we're in the correct directory
@@ -79,9 +95,17 @@ check_directory() {
         exit 1
     fi
     
-    if [ ! -f "main.js" ]; then
-        print_error "main.js not found!"
+    # Check for TypeScript Electron project structure
+    if [ ! -f "electron/main.ts" ] && [ ! -f "dist-electron/main.js" ]; then
+        print_error "Electron main file not found!"
+        print_status "Looking for electron/main.ts or dist-electron/main.js"
         print_status "Project structure appears incomplete"
+        exit 1
+    fi
+    
+    if [ ! -f "vite.config.ts" ]; then
+        print_error "vite.config.ts not found!"
+        print_status "This doesn't appear to be a Vite-based Electron project"
         exit 1
     fi
     
@@ -92,25 +116,25 @@ check_directory() {
 install_dependencies() {
     print_status "Checking dependencies..."
     
-    if [ ! -d "node_modules" ] || [ ! -f "node_modules/.package-lock.json" ]; then
+    if [ ! -d "node_modules" ]; then
         print_status "Installing dependencies... (this may take a few minutes)"
         
-        # Try npm install with some optimizations
-        if npm install --verbose; then
+        # Use the detected package manager
+        if $PACKAGE_MANAGER install; then
             print_success "Dependencies installed successfully"
         else
             print_error "Failed to install dependencies"
-            print_status "Try running: npm install --verbose"
-            print_status "Or delete node_modules and package-lock.json, then try again"
+            print_status "Try running: $PACKAGE_MANAGER install"
+            print_status "Or delete node_modules and lock files, then try again"
             exit 1
         fi
     else
         print_success "Dependencies already installed"
         
-        # Check if we need to update
-        if npm outdated --parseable 2>/dev/null | grep -q .; then
+        # Check if we need to update (only for npm, pnpm has different syntax)
+        if [ "$PACKAGE_MANAGER" = "npm" ] && npm outdated --parseable 2>/dev/null | grep -q .; then
             print_warning "Some dependencies may be outdated"
-            print_status "Run 'npm update' to update them"
+            print_status "Run '$PACKAGE_MANAGER update' to update them"
         fi
     fi
 }
@@ -122,18 +146,32 @@ check_native_deps() {
     if [ ! -d "node_modules/sqlite3" ]; then
         print_warning "sqlite3 not found in node_modules"
         print_status "This might cause issues. Reinstalling dependencies..."
-        rm -rf node_modules package-lock.json
-        npm install
+        rm -rf node_modules
+        if [ -f "pnpm-lock.yaml" ]; then
+            rm -f pnpm-lock.yaml
+        fi
+        if [ -f "package-lock.json" ]; then
+            rm -f package-lock.json
+        fi
+        $PACKAGE_MANAGER install
         return
     fi
     
-    # Check if sqlite3 binary exists
-    if [ ! -f "node_modules/sqlite3/lib/binding/napi-v6-darwin-x64/node_sqlite3.node" ] && \
-       [ ! -f "node_modules/sqlite3/lib/binding/napi-v6-linux-x64/node_sqlite3.node" ] && \
-       [ ! -f "node_modules/sqlite3/lib/binding/napi-v6-darwin-arm64/node_sqlite3.node" ] && \
-       [ ! -f "node_modules/sqlite3/lib/binding/napi-v6-linux-arm64/node_sqlite3.node" ]; then
-        print_warning "sqlite3 binary not found, rebuilding..."
-        npm rebuild sqlite3
+    # Check if sqlite3 binary exists for current platform
+    PLATFORM=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+    
+    # Map architecture names
+    case "$ARCH" in
+        x86_64) ARCH="x64" ;;
+        aarch64|arm64) ARCH="arm64" ;;
+    esac
+    
+    SQLITE_BINDING="node_modules/sqlite3/lib/binding/napi-v6-${PLATFORM}-${ARCH}/node_sqlite3.node"
+    
+    if [ ! -f "$SQLITE_BINDING" ]; then
+        print_warning "sqlite3 binary not found for $PLATFORM-$ARCH, rebuilding..."
+        $PACKAGE_MANAGER rebuild sqlite3
     fi
     
     print_success "Native dependencies check complete"
@@ -164,7 +202,10 @@ set_dev_env() {
     if [ "$1" = "--debug" ]; then
         export ELECTRON_ENABLE_LOGGING=1
         export ELECTRON_ENABLE_STACK_DUMPING=1
-        print_status "Debug mode enabled"
+        export ENABLE_DEV_TOOLS=true
+        print_status "Debug mode enabled - DevTools will open automatically"
+    else
+        print_status "DevTools disabled by default - use Ctrl+Shift+I or F12 to toggle"
     fi
     
     print_success "Environment configured"
@@ -173,11 +214,12 @@ set_dev_env() {
 # Start the application
 start_app() {
     print_status "Starting Prompt Studio..."
+    print_status "This will start both the Vite dev server and Electron"
     print_status "Press Ctrl+C to stop the application"
     echo ""
     
-    # Add development flag to start with dev tools
-    npm run dev
+    # Use the correct development command for Electron + Vite
+    $PACKAGE_MANAGER run electron:dev
 }
 
 # Main execution
@@ -186,7 +228,7 @@ main() {
     print_status "Starting pre-flight checks..."
     
     check_node
-    check_npm
+    check_package_manager
     check_directory
     create_directories
     install_dependencies
@@ -211,11 +253,11 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "  --debug       Enable debug mode with extra logging"
     echo ""
     echo "This script will:"
-    echo "  1. Check Node.js and npm installation"
-    echo "  2. Verify project structure"
+    echo "  1. Check Node.js and package manager installation (pnpm preferred)"
+    echo "  2. Verify TypeScript Electron + Vite project structure"
     echo "  3. Install dependencies if needed"
-    echo "  4. Check native dependencies"
-    echo "  5. Start the application in development mode"
+    echo "  4. Check native dependencies (sqlite3)"
+    echo "  5. Start the application in development mode (Vite + Electron)"
     echo ""
     exit 0
 fi

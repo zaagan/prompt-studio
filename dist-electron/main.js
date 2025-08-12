@@ -1254,6 +1254,7 @@ class PromptStudioApp {
     this.db = null;
     this.currentMode = "desktop";
     this.isDev = process.env.IS_DEV === "true";
+    this.enableDevTools = process.env.ENABLE_DEV_TOOLS === "true";
     this.isQuitting = false;
     this.setupEventHandlers();
   }
@@ -1319,7 +1320,9 @@ class PromptStudioApp {
     });
     if (this.isDev) {
       await this.mainWindow.loadURL("http://localhost:5173");
-      this.mainWindow.webContents.openDevTools();
+      if (this.enableDevTools) {
+        this.mainWindow.webContents.openDevTools();
+      }
     } else {
       await this.mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
     }
@@ -1337,6 +1340,16 @@ class PromptStudioApp {
         }
       }
     });
+    if (this.isDev) {
+      this.mainWindow.webContents.on("before-input-event", (_, input) => {
+        if (input.control && input.shift && input.key === "I") {
+          this.mainWindow.webContents.toggleDevTools();
+        }
+        if ((input.meta || input.control) && input.key === "F12") {
+          this.mainWindow.webContents.toggleDevTools();
+        }
+      });
+    }
   }
   async createMenuBarWindow() {
     this.menuBarWindow = new electron.BrowserWindow({

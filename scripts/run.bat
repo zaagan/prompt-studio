@@ -37,19 +37,33 @@ if !NODE_MAJOR! lss 16 (
     echo %INFO_PREFIX% Please consider upgrading for best compatibility
 )
 
-REM Check if npm is installed
-echo %INFO_PREFIX% Checking npm installation...
+REM Check package manager (prefer pnpm, fallback to npm)
+echo %INFO_PREFIX% Checking package manager...
 
-npm --version >nul 2>&1
-if !errorlevel! neq 0 (
-    echo %ERROR_PREFIX% npm is not installed!
-    echo %INFO_PREFIX% npm usually comes with Node.js installation
-    pause
-    exit /b 1
+pnpm --version >nul 2>&1
+if !errorlevel! equ 0 (
+    set "PACKAGE_MANAGER=pnpm"
+    for /f "tokens=*" %%i in ('pnpm --version') do set PKG_VERSION=%%i
+    echo %SUCCESS_PREFIX% pnpm found: v!PKG_VERSION!
+    goto :package_manager_found
 )
 
-for /f "tokens=*" %%i in ('npm --version') do set NPM_VERSION=%%i
-echo %SUCCESS_PREFIX% npm found: v!NPM_VERSION!
+npm --version >nul 2>&1
+if !errorlevel! equ 0 (
+    set "PACKAGE_MANAGER=npm"
+    for /f "tokens=*" %%i in ('npm --version') do set PKG_VERSION=%%i
+    echo %SUCCESS_PREFIX% npm found: v!PKG_VERSION!
+    goto :package_manager_found
+)
+
+echo %ERROR_PREFIX% No package manager found!
+echo %INFO_PREFIX% Please install pnpm (recommended) or npm
+echo %INFO_PREFIX% pnpm: npm install -g pnpm
+echo %INFO_PREFIX% npm: usually comes with Node.js installation
+pause
+exit /b 1
+
+:package_manager_found
 
 REM Check if we're in the correct directory
 echo %INFO_PREFIX% Checking project directory...
@@ -61,9 +75,20 @@ if not exist "package.json" (
     exit /b 1
 )
 
-if not exist "main.js" (
-    echo %ERROR_PREFIX% main.js not found!
-    echo %INFO_PREFIX% Project structure appears incomplete
+REM Check for TypeScript Electron project structure
+if not exist "electron\main.ts" (
+    if not exist "dist-electron\main.js" (
+        echo %ERROR_PREFIX% Electron main file not found!
+        echo %INFO_PREFIX% Looking for electron\main.ts or dist-electron\main.js
+        echo %INFO_PREFIX% Project structure appears incomplete
+        pause
+        exit /b 1
+    )
+)
+
+if not exist "vite.config.ts" (
+    echo %ERROR_PREFIX% vite.config.ts not found!
+    echo %INFO_PREFIX% This doesn't appear to be a Vite-based Electron project
     pause
     exit /b 1
 )
@@ -86,11 +111,11 @@ echo %INFO_PREFIX% Checking dependencies...
 if not exist "node_modules" (
     echo %INFO_PREFIX% Installing dependencies... (this may take a few minutes)
     
-    npm install --verbose
+    %PACKAGE_MANAGER% install
     if !errorlevel! neq 0 (
         echo %ERROR_PREFIX% Failed to install dependencies
-        echo %INFO_PREFIX% Try running: npm install --verbose
-        echo %INFO_PREFIX% Or delete node_modules and package-lock.json, then try again
+        echo %INFO_PREFIX% Try running: %PACKAGE_MANAGER% install
+        echo %INFO_PREFIX% Or delete node_modules and lock files, then try again
         pause
         exit /b 1
     )
@@ -99,11 +124,13 @@ if not exist "node_modules" (
 ) else (
     echo %SUCCESS_PREFIX% Dependencies already installed
     
-    REM Check for outdated packages
-    npm outdated >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo %WARNING_PREFIX% Some dependencies may be outdated
-        echo %INFO_PREFIX% Run 'npm update' to update them
+    REM Check for outdated packages (only for npm)
+    if "%PACKAGE_MANAGER%"=="npm" (
+        npm outdated >nul 2>&1
+        if !errorlevel! equ 0 (
+            echo %WARNING_PREFIX% Some dependencies may be outdated
+            echo %INFO_PREFIX% Run '%PACKAGE_MANAGER% update' to update them
+        )
     )
 )
 
@@ -115,7 +142,8 @@ if not exist "node_modules\sqlite3" (
     echo %INFO_PREFIX% This might cause issues. Reinstalling dependencies...
     rmdir /s /q "node_modules" >nul 2>&1
     del "package-lock.json" >nul 2>&1
-    npm install
+    del "pnpm-lock.yaml" >nul 2>&1
+    %PACKAGE_MANAGER% install
     goto :continue_native_check
 )
 
@@ -126,7 +154,7 @@ if exist "node_modules\sqlite3\lib\binding\napi-v6-win32-ia32\node_sqlite3.node"
 
 if !SQLITE_FOUND! equ 0 (
     echo %WARNING_PREFIX% sqlite3 binary not found, rebuilding...
-    npm rebuild sqlite3
+    %PACKAGE_MANAGER% rebuild sqlite3
 )
 
 :continue_native_check
@@ -141,7 +169,10 @@ REM Enable Electron debugging if requested
 if "%1"=="--debug" (
     set ELECTRON_ENABLE_LOGGING=1
     set ELECTRON_ENABLE_STACK_DUMPING=1
-    echo %INFO_PREFIX% Debug mode enabled
+    set ENABLE_DEV_TOOLS=true
+    echo %INFO_PREFIX% Debug mode enabled - DevTools will open automatically
+) else (
+    echo %INFO_PREFIX% DevTools disabled by default - use Ctrl+Shift+I or F12 to toggle
 )
 
 echo %SUCCESS_PREFIX% Environment configured
@@ -155,8 +186,8 @@ echo %INFO_PREFIX% Starting Prompt Studio...
 echo %INFO_PREFIX% Press Ctrl+C to stop the application
 echo.
 
-REM Add development flag to start with dev tools
-npm run dev
+REM Start the application using the correct Electron + Vite development command
+%PACKAGE_MANAGER% run electron:dev
 
 if !errorlevel! neq 0 (
     echo.
@@ -182,11 +213,11 @@ echo   --help, -h    Show this help message
 echo   --debug       Enable debug mode with extra logging
 echo.
 echo This script will:
-echo   1. Check Node.js and npm installation
-echo   2. Verify project structure
+echo   1. Check Node.js and package manager installation (pnpm preferred)
+echo   2. Verify TypeScript Electron + Vite project structure
 echo   3. Install dependencies if needed
-echo   4. Check native dependencies
-echo   5. Start the application in development mode
+echo   4. Check native dependencies (sqlite3)
+echo   5. Start the application in development mode (Vite + Electron)
 echo.
 pause
 exit /b 0

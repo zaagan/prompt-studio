@@ -47,6 +47,7 @@ class PromptStudioApp {
   private db: Database | null = null
   private currentMode: 'desktop' | 'menubar' = 'desktop'
   private readonly isDev: boolean = process.env.IS_DEV === 'true'
+  private readonly enableDevTools: boolean = process.env.ENABLE_DEV_TOOLS === 'true'
   private isQuitting: boolean = false
 
   constructor() {
@@ -131,7 +132,11 @@ class PromptStudioApp {
 
     if (this.isDev) {
       await this.mainWindow.loadURL('http://localhost:5173')
-      this.mainWindow.webContents.openDevTools()
+      
+      // Only open dev tools if explicitly enabled
+      if (this.enableDevTools) {
+        this.mainWindow.webContents.openDevTools()
+      }
     } else {
       await this.mainWindow.loadFile(join(__dirname, '../dist/index.html'))
     }
@@ -151,6 +156,18 @@ class PromptStudioApp {
         }
       }
     })
+
+    // Add keyboard shortcut to toggle dev tools
+    if (this.isDev) {
+      this.mainWindow.webContents.on('before-input-event', (_, input) => {
+        if (input.control && input.shift && input.key === 'I') {
+          this.mainWindow!.webContents.toggleDevTools()
+        }
+        if ((input.meta || input.control) && input.key === 'F12') {
+          this.mainWindow!.webContents.toggleDevTools()
+        }
+      })
+    }
   }
 
   private async createMenuBarWindow(): Promise<void> {
@@ -237,7 +254,7 @@ class PromptStudioApp {
     }
   }
 
-  private createTrayIcon(): nativeImage.NativeImage {
+  private createTrayIcon(): Electron.NativeImage {
     const trayIconPath = join(__dirname, '../assets/tray-icon.png')
     if (existsSync(trayIconPath)) {
       const icon = nativeImage.createFromPath(trayIconPath)

@@ -13,6 +13,7 @@ interface SettingsViewProps {
 
 export function SettingsView({ onClose }: SettingsViewProps) {
   const [activeTab, setActiveTab] = useState('categories')
+  
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Content */}
