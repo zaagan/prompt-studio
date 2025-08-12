@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Folder, Plus, Tag, Heart, Clock, Settings, MoreVertical, Edit, Trash2, Info } from 'lucide-react'
+import { ChevronDown, ChevronRight, Folder, Plus, Tag, Heart, Clock, Settings, MoreVertical, Edit, Trash2, Info, Keyboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import AppIcon from '/assets/icon.png'
 import { CategoryModal } from '../modals/category-modal'
 import { ThemeSwitcher } from '../ui/theme-switcher'
+import { KeyboardShortcutsHelp } from '../keyboard-shortcuts-help'
 import { parseSearchQuery, formatSearchQuery } from '@/lib/search-parser'
 import type { Category } from '@/types'
 
@@ -21,6 +22,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed = false }: SidebarProps) {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | undefined>(undefined)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [sectionsOpen, setSectionsOpen] = useState({
     categories: true,
     tags: true,
@@ -324,6 +326,23 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           {/* Theme Switcher */}
           <ThemeSwitcher collapsed={true} />
           
+          {/* Keyboard Shortcuts */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8"
+                onClick={() => setShortcutsOpen(true)}
+              >
+                <Keyboard className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Keyboard Shortcuts</p>
+            </TooltipContent>
+          </Tooltip>
+
           {/* Settings */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -347,6 +366,12 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           open={categoryModalOpen}
           onOpenChange={handleCategoryModalClose}
           category={editingCategory}
+        />
+        
+        {/* Keyboard Shortcuts Help */}
+        <KeyboardShortcutsHelp 
+          open={shortcutsOpen} 
+          onOpenChange={setShortcutsOpen} 
         />
       </TooltipProvider>
     )
@@ -598,6 +623,16 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           variant="ghost"
           size="sm"
           className="w-full justify-start h-8 text-xs"
+          onClick={() => setShortcutsOpen(true)}
+        >
+          <Keyboard className="h-4 w-4 mr-2" />
+          Keyboard Shortcuts
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start h-8 text-xs"
           onClick={openSettings}
         >
           <Settings className="h-4 w-4 mr-2" />
@@ -610,6 +645,12 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
         open={categoryModalOpen}
         onOpenChange={handleCategoryModalClose}
         category={editingCategory}
+      />
+      
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp 
+        open={shortcutsOpen} 
+        onOpenChange={setShortcutsOpen} 
       />
     </div>
   )

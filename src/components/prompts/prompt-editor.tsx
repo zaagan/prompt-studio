@@ -257,6 +257,7 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
             onClick={handleSave}
             disabled={!isFormValid || isSaving}
             size="sm"
+            data-save-button
           >
             <Save className="h-4 w-4 mr-2" />
             {isSaving ? 'Saving...' : 'Save'}

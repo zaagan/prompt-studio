@@ -158,6 +158,7 @@ export function AdvancedSearchInput({
           onFocus={() => setShowSuggestions(value.trim().length > 0 && suggestions.length > 0)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           className={cn("pl-9 pr-10", className)}
+          data-search-input
         />
         {value && (
           <Button

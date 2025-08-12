@@ -1,5 +1,10 @@
 import { cn } from '@/lib/utils'
-import { CSSProperties } from 'react'
+import { CSSProperties, useState } from 'react'
+import { MoreHorizontal, Keyboard, HelpCircle, Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { KeyboardShortcutsHelp } from '@/components/keyboard-shortcuts-help'
+import { usePromptStore } from '@/stores/usePromptStore'
 
 interface AppHeaderProps {
   className?: string
@@ -10,6 +15,8 @@ interface ExtendedCSSProperties extends CSSProperties {
 }
 
 export function AppHeader({ className }: AppHeaderProps) {
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const { openSettings } = usePromptStore()
   const isMac = typeof navigator !== 'undefined' && navigator.platform.includes('Mac')
   
   const headerStyle: ExtendedCSSProperties = {
@@ -34,8 +41,36 @@ export function AppHeader({ className }: AppHeaderProps) {
         </h1>
       </div>
       
-      {/* Right spacing for symmetry */}
-      <div className={cn("flex-shrink-0", isMac ? "w-20" : "w-4")} />
+      {/* Right side menu */}
+      <div className="flex-shrink-0 flex items-center pr-4" style={{ WebkitAppRegion: 'no-drag' }}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
+              <Keyboard className="h-4 w-4 mr-2" />
+              Keyboard Shortcuts
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={openSettings}>
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help & Support
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      
+      <KeyboardShortcutsHelp 
+        open={shortcutsOpen} 
+        onOpenChange={setShortcutsOpen} 
+      />
     </div>
   )
 }

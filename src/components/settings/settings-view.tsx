@@ -5,6 +5,7 @@ import { InfoIcon } from '@/components/ui/info-icon'
 import { CategoryManager } from './category-manager'
 import { TagManager } from './tag-manager'
 import { FactoryReset } from './factory-reset'
+import { KeyboardShortcutsSettings } from './keyboard-shortcuts-settings'
 import { Palette, Settings as SettingsIcon, Database, Hash, X } from 'lucide-react'
 
 interface SettingsViewProps {
@@ -122,11 +123,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
               </TabsContent>
 
               <TabsContent value="general" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    General settings coming soon...
-                  </div>
-                </div>
+                <KeyboardShortcutsSettings />
               </TabsContent>
 
               <TabsContent value="data" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
