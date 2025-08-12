@@ -444,6 +444,28 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 - **Documentation**: Check this README and inline code comments
 - **Updates**: Follow releases for new features and bug fixes
 
+## ☕ Support the Project
+
+We rely on your support to keep Prompt Studio **free and awesome!** 🎉 
+
+Your contributions help us:
+- 🚀 **Add new features** and improve existing ones
+- 🐛 **Fix bugs** and enhance stability
+- 📚 **Improve documentation** and tutorials
+- 🌟 **Keep the project maintained** and up-to-date
+
+**Buy us a coffee to help fuel our coding sessions!** ☕️
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-☕-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/zaagan)
+
+Every contribution, no matter how small, makes a huge difference! 🙌
+
+**Other ways to support:**
+- ⭐ **Star this repository** to show your appreciation
+- 📢 **Share Prompt Studio** with fellow AI enthusiasts
+- 🐛 **Report bugs** and suggest improvements
+- 💡 **Contribute code** or documentation
+
 ---
 
 **Made with ❤️ for the AI community**
