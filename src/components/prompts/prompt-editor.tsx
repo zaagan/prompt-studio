@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Save, Copy, Heart, Tag, Folder, Clock, Sparkles } from 'lucide-react'
+import { X, Save, Copy, Check, Heart, Tag, Folder, Clock, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -29,7 +29,10 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
     updatePrompt,
     closePromptEditor,
     addToast,
-    loading
+    loading,
+    saveDraftFormData,
+    clearDraftFormData,
+    getDraftFormData
   } = usePromptStore()
 
   const [formData, setFormData] = useState<{
@@ -52,9 +55,11 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
 
   const [newTag, setNewTag] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [justCopied, setJustCopied] = useState(false)
 
   useEffect(() => {
     if (selectedPrompt) {
+      // Editing existing prompt - use the prompt data
       setFormData({
         title: selectedPrompt.title,
         content: selectedPrompt.content,
@@ -65,19 +70,29 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
         is_favorite: selectedPrompt.is_favorite
       })
     } else {
-      setFormData({
-        title: '',
-        content: '',
-        description: '',
-        category_id: null,
-        template_id: null,
-        tags: [],
-        is_favorite: false
-      })
+      // Creating new prompt - check for saved draft
+      const draftData = getDraftFormData()
+      if (draftData) {
+        setFormData(draftData)
+      } else {
+        setFormData({
+          title: '',
+          content: '',
+          description: '',
+          category_id: null,
+          template_id: null,
+          tags: [],
+          is_favorite: false
+        })
+      }
     }
-  }, [selectedPrompt])
+  }, [selectedPrompt, getDraftFormData])
 
   const handleClose = () => {
+    // Clear draft data when explicitly closing
+    if (!selectedPrompt) {
+      clearDraftFormData()
+    }
     closePromptEditor()
     onClose?.()
   }
@@ -117,6 +132,10 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
         }
         await createPrompt(createData)
       }
+      // Clear draft data after successful save
+      if (!selectedPrompt) {
+        clearDraftFormData()
+      }
       handleClose()
     } catch (error) {
       console.error('Failed to save prompt:', error)
@@ -128,6 +147,11 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
   const handleCopyContent = async () => {
     try {
       await window.electronAPI.copyToClipboard(formData.content)
+      
+      // Show visual feedback
+      setJustCopied(true)
+      setTimeout(() => setJustCopied(false), 2000) // Reset after 2 seconds
+      
       addToast({
         type: 'success',
         title: 'Copied',
@@ -140,36 +164,56 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
 
   const handleAddTag = () => {
     if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, newTag.trim()]
-      }))
+      const newFormData = {
+        ...formData,
+        tags: [...formData.tags, newTag.trim()]
+      }
+      setFormData(newFormData)
       setNewTag('')
+      // Save draft if creating new prompt
+      if (!selectedPrompt) {
+        saveDraftFormData(newFormData)
+      }
     }
   }
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }))
+    const newFormData = {
+      ...formData,
+      tags: formData.tags.filter(tag => tag !== tagToRemove)
+    }
+    setFormData(newFormData)
+    // Save draft if creating new prompt
+    if (!selectedPrompt) {
+      saveDraftFormData(newFormData)
+    }
   }
 
   const handleTemplateChange = async (templateId: string) => {
     if (!templateId || templateId === 'none') {
-      setFormData(prev => ({ ...prev, template_id: null }))
+      const newFormData = { ...formData, template_id: null }
+      setFormData(newFormData)
+      // Save draft if creating new prompt
+      if (!selectedPrompt) {
+        saveDraftFormData(newFormData)
+      }
       return
     }
 
     try {
       const template = templates.find(t => t.id === parseInt(templateId))
       if (template) {
-        setFormData(prev => ({
-          ...prev,
+        const newFormData = {
+          ...formData,
           template_id: parseInt(templateId),
           content: template.content,
           category_id: template.category_id
-        }))
+        }
+        setFormData(newFormData)
+        // Save draft if creating new prompt
+        if (!selectedPrompt) {
+          saveDraftFormData(newFormData)
+        }
       }
     } catch (error) {
       console.error('Failed to apply template:', error)
@@ -194,9 +238,19 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
               variant="outline"
               size="sm"
               onClick={handleCopyContent}
+              disabled={justCopied}
             >
-              <Copy className="h-4 w-4 mr-2" />
-              Copy
+              {justCopied ? (
+                <>
+                  <Check className="h-4 w-4 mr-2 text-green-600" />
+                  <span className="text-green-600">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </>
+              )}
             </Button>
           )}
           <Button
@@ -235,7 +289,14 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
                   id="title"
                   placeholder="Enter prompt title..."
                   value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => {
+                    const newFormData = { ...formData, title: e.target.value }
+                    setFormData(newFormData)
+                    // Save draft if creating new prompt
+                    if (!selectedPrompt) {
+                      saveDraftFormData(newFormData)
+                    }
+                  }}
                 />
               </div>
 
@@ -272,8 +333,15 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
                   id="content"
                   placeholder="Enter your prompt content..."
                   value={formData.content}
-                  onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                  className="min-h-[200px] resize-none"
+                  onChange={(e) => {
+                    const newFormData = { ...formData, content: e.target.value }
+                    setFormData(newFormData)
+                    // Save draft if creating new prompt
+                    if (!selectedPrompt) {
+                      saveDraftFormData(newFormData)
+                    }
+                  }}
+                  className="min-h-[300px] resize-y"
                 />
                 <div className="text-xs text-muted-foreground">
                   {formData.content.length} characters
@@ -287,7 +355,14 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
                   id="description"
                   placeholder="Add a description for this prompt..."
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => {
+                    const newFormData = { ...formData, description: e.target.value }
+                    setFormData(newFormData)
+                    // Save draft if creating new prompt
+                    if (!selectedPrompt) {
+                      saveDraftFormData(newFormData)
+                    }
+                  }}
                   className="min-h-[80px] resize-none"
                 />
               </div>
@@ -299,10 +374,17 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
                 <Label htmlFor="category">Category</Label>
                 <Select
                   value={formData.category_id?.toString() || 'none'}
-                  onValueChange={(value) => setFormData(prev => ({ 
-                    ...prev, 
-                    category_id: value === 'none' ? null : parseInt(value) 
-                  }))}
+                  onValueChange={(value) => {
+                    const newFormData = { 
+                      ...formData, 
+                      category_id: value === 'none' ? null : parseInt(value) 
+                    }
+                    setFormData(newFormData)
+                    // Save draft if creating new prompt
+                    if (!selectedPrompt) {
+                      saveDraftFormData(newFormData)
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category..." />
@@ -365,7 +447,14 @@ export function PromptEditor({ compact = false, onClose }: PromptEditorProps) {
                 <Switch
                   id="favorite"
                   checked={formData.is_favorite}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_favorite: checked }))}
+                  onCheckedChange={(checked) => {
+                    const newFormData = { ...formData, is_favorite: checked }
+                    setFormData(newFormData)
+                    // Save draft if creating new prompt
+                    if (!selectedPrompt) {
+                      saveDraftFormData(newFormData)
+                    }
+                  }}
                 />
                 <Label htmlFor="favorite" className="flex items-center space-x-2 cursor-pointer">
                   <Heart className={cn(

@@ -59,16 +59,7 @@ export function FactoryReset() {
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <RefreshCw className="h-5 w-5" />
-            <span>Factory Reset</span>
-          </CardTitle>
-          <CardDescription>
-            Reset all data and restore sample content to help you get started.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
             <div className="flex items-start space-x-3">
               <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />

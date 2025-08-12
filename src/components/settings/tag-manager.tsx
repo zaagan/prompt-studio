@@ -107,57 +107,8 @@ export function TagManager() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Tag Management</h2>
-            <p className="text-muted-foreground">
-              Manage and organize your prompt tags. Use the search bar to find specific tags.
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowAdvancedSearchInfo(!showAdvancedSearchInfo)}
-            className="flex items-center space-x-2"
-          >
-            <Info className="h-4 w-4" />
-            <span className="text-sm">Search Help</span>
-            {showAdvancedSearchInfo ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-
-        {/* Advanced Search Info Panel */}
-        {showAdvancedSearchInfo && (
-          <div className="mt-4 p-4 bg-muted rounded-lg border">
-            <h4 className="font-medium mb-2">Advanced Search Syntax</h4>
-            <p className="text-sm text-muted-foreground mb-3">
-              You can use advanced search syntax in the main search bar:
-            </p>
-            <div className="space-y-2 text-sm font-mono bg-background p-3 rounded border">
-              <div className="flex items-center space-x-2">
-                <code className="text-primary">tag:AI</code>
-                <span className="text-muted-foreground">Find prompts with "AI" tag</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <code className="text-primary">tag:AI,Writing</code>
-                <span className="text-muted-foreground">Find prompts with "AI" OR "Writing" tags</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <code className="text-primary">title:review tag:Code</code>
-                <span className="text-muted-foreground">Combine multiple filters</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-4">
+    <div className="h-full flex flex-col space-y-6">
+      <div className="space-y-4 flex-shrink-0">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -177,7 +128,7 @@ export function TagManager() {
       </div>
 
       {/* Tags List */}
-      <ScrollArea className="h-[500px]">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="space-y-4 pb-4">
           {filteredStats.length === 0 ? (
             <div className="text-center py-8">

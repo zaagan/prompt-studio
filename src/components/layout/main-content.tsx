@@ -1,20 +1,21 @@
 import { useState } from 'react'
-import { Search, Filter, SortAsc, SortDesc, Grid, List, Plus, Settings } from 'lucide-react'
+import { Search, Filter, SortAsc, SortDesc, Grid, List, Plus, Settings, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { InfoIcon } from '@/components/ui/info-icon'
 import { AdvancedSearchInput } from '../search/advanced-search-input'
 import { PromptList } from '../prompts/prompt-list'
 import { PromptGrid } from '../prompts/prompt-grid'
 import { TestingPanel } from '../testing/testing-panel'
+import { TemplateList } from '../templates/template-list-simple'
 import { usePromptStore } from '@/stores/usePromptStore'
 import type { SortOptions } from '@/types'
 
 export function MainContent() {
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [activeTab, setActiveTab] = useState('prompts')
   
   const {
@@ -24,9 +25,19 @@ export function MainContent() {
     setSearchFilters,
     setSortOptions,
     openPromptEditor,
+    openTemplateEditor,
+    templateSearchQuery,
+    setTemplateSearchQuery,
+    getFilteredTemplates,
+    promptViewMode,
+    templateViewMode,
+    setPromptViewMode,
+    setTemplateViewMode,
     isPromptEditorOpen,
     isPromptViewerOpen
   } = usePromptStore()
+  
+  const filteredTemplates = getFilteredTemplates()
 
   const filteredPrompts = getFilteredPrompts()
 
@@ -61,19 +72,74 @@ export function MainContent() {
         {/* Header */}
         <div className="flex-shrink-0 p-4 border-b space-y-4">
           <div className="flex items-center justify-between">
-            <TabsList>
-              <TabsTrigger value="prompts">Prompts</TabsTrigger>
-              <TabsTrigger value="testing">Testing</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-4">
+              <TabsList>
+                <TabsTrigger value="prompts">Prompts</TabsTrigger>
+                <TabsTrigger value="templates">Templates</TabsTrigger>
+                <TabsTrigger value="testing">Testing</TabsTrigger>
+              </TabsList>
+              
+              {/* Info icons for each tab */}
+              {activeTab === 'prompts' && (
+                <InfoIcon 
+                  title="Prompts"
+                  description={
+                    <div className="space-y-2">
+                      <p>Create, organize, and manage your AI prompts with advanced features.</p>
+                      <p><strong>Categories:</strong> Organize prompts with color-coded categories for easy identification.</p>
+                      <p><strong>Tags:</strong> Add multiple tags to prompts for flexible organization and filtering.</p>
+                      <p><strong>Advanced Search:</strong> Use syntax like 'tag:AI,Writing' or 'is:favorite' to find prompts quickly.</p>
+                      <p><strong>Favorites:</strong> Mark important prompts as favorites for quick access.</p>
+                      <p><strong>Templates:</strong> Apply pre-made templates to speed up prompt creation.</p>
+                    </div>
+                  }
+                />
+              )}
+              
+              {activeTab === 'templates' && (
+                <InfoIcon 
+                  title="Templates"
+                  description={
+                    <div className="space-y-2">
+                      <p>Create reusable templates with variables for quick prompt generation.</p>
+                      <p><strong>Variables:</strong> Use {`{{variableName}}`} syntax in your content to create placeholders that can be filled in when the template is used.</p>
+                      <p><strong>Categories:</strong> Organize templates by assigning them to categories with color-coded labels.</p>
+                      <p><strong>Search:</strong> Find templates by name, content, description, or variable names.</p>
+                    </div>
+                  }
+                />
+              )}
+              
+              {activeTab === 'testing' && (
+                <InfoIcon 
+                  title="Testing"
+                  description={
+                    <div className="space-y-2">
+                      <p>Test your prompts with different AI models and configurations to optimize their performance.</p>
+                      <p><strong>Multi-Model Testing:</strong> Compare how different AI models respond to your prompts.</p>
+                      <p><strong>Parameter Tuning:</strong> Adjust temperature, max tokens, and other parameters to fine-tune responses.</p>
+                      <p><strong>A/B Testing:</strong> Test multiple prompt variations to find the most effective one.</p>
+                      <p><strong>Response Analysis:</strong> Evaluate and compare AI responses to improve your prompts.</p>
+                    </div>
+                  }
+                />
+              )}
+            </div>
             
-            {activeTab === 'prompts' && (
+            {(activeTab === 'prompts' || activeTab === 'templates') && (
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
+                  onClick={() => {
+                    if (activeTab === 'prompts') {
+                      setPromptViewMode(promptViewMode === 'list' ? 'grid' : 'list')
+                    } else {
+                      setTemplateViewMode(templateViewMode === 'list' ? 'grid' : 'list')
+                    }
+                  }}
                 >
-                  {viewMode === 'list' ? (
+                  {(activeTab === 'prompts' ? promptViewMode : templateViewMode) === 'list' ? (
                     <Grid className="h-4 w-4" />
                   ) : (
                     <List className="h-4 w-4" />
@@ -81,10 +147,16 @@ export function MainContent() {
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() => openPromptEditor()}
+                  onClick={() => {
+                    if (activeTab === 'prompts') {
+                      openPromptEditor()
+                    } else {
+                      openTemplateEditor()
+                    }
+                  }}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  New Prompt
+                  {activeTab === 'prompts' ? 'New Prompt' : 'New Template'}
                 </Button>
               </div>
             )}
@@ -169,6 +241,42 @@ export function MainContent() {
               </div>
             </div>
           )}
+          
+          {activeTab === 'templates' && (
+            <div className="space-y-3">
+              {/* Template Search */}
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                <div className="flex-1 min-w-0">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search templates..."
+                      value={templateSearchQuery}
+                      onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                      className="pl-9 pr-9 h-10"
+                    />
+                    {templateSearchQuery && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setTemplateSearchQuery('')}
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                
+                {filteredTemplates.length > 0 && (
+                  <div className="flex items-center text-sm text-muted-foreground lg:self-center lg:mt-0">
+                    {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
+                    {templateSearchQuery && ` (filtered)`}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -212,7 +320,7 @@ export function MainContent() {
                         </p>
                       </div>
                       
-                      {viewMode === 'list' ? (
+                      {promptViewMode === 'list' ? (
                         <PromptList prompts={filteredPrompts} />
                       ) : (
                         <PromptGrid 
@@ -225,6 +333,13 @@ export function MainContent() {
                 </div>
               </ScrollArea>
             </div>
+          </TabsContent>
+
+          <TabsContent value="templates" className="h-full m-0">
+            <TemplateList 
+              viewMode={templateViewMode} 
+              filteredTemplates={filteredTemplates}
+            />
           </TabsContent>
 
           <TabsContent value="testing" className="h-full m-0">

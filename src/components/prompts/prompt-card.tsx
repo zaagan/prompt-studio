@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Heart, Copy, Edit, Trash2, Calendar, Tag, Folder, MoreVertical, Check } from 'lucide-react'
+import { Heart, Copy, Edit, Trash2, Calendar, Tag, Folder, MoreVertical, Check, Files } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +28,7 @@ export function PromptCard({
   const { 
     updatePrompt, 
     deletePrompt, 
+    duplicatePrompt,
     openPromptEditor,
     addToast 
   } = usePromptStore()
@@ -85,6 +86,15 @@ export function PromptCard({
       } catch (error) {
         console.error('Failed to delete:', error)
       }
+    }
+  }
+
+  const handleDuplicate = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await duplicatePrompt(prompt.id)
+    } catch (error) {
+      console.error('Failed to duplicate:', error)
     }
   }
 
@@ -179,6 +189,10 @@ export function PromptCard({
                 <DropdownMenuItem onClick={handleEdit}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDuplicate}>
+                  <Files className="h-4 w-4 mr-2" />
+                  Duplicate
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 

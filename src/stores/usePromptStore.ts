@@ -29,14 +29,28 @@ interface PromptStore {
   searchFilters: SearchFilters
   sortOptions: SortOptions
   
+  // Template filters
+  templateSearchQuery: string
+  
+  // View modes
+  promptViewMode: 'list' | 'grid'
+  templateViewMode: 'list' | 'grid'
+  
   // UI state
   selectedPrompt: Prompt | null
   isPromptEditorOpen: boolean
   isPromptViewerOpen: boolean
   isSettingsOpen: boolean
   
+  // Template editor state
+  selectedTemplate: Template | null
+  isTemplateEditorOpen: boolean
+  
   // Toast notifications
   toasts: readonly ToastMessage[]
+  
+  // Draft persistence
+  draftFormData: any
   
   // Actions
   // Data fetching
@@ -50,6 +64,7 @@ interface PromptStore {
   createPrompt: (data: CreatePromptData) => Promise<void>
   updatePrompt: (id: number, data: UpdatePromptData) => Promise<void>
   deletePrompt: (id: number) => Promise<void>
+  duplicatePrompt: (id: number) => Promise<void>
   selectPrompt: (prompt: Prompt | null) => void
   
   // Category operations
@@ -61,12 +76,21 @@ interface PromptStore {
   createTemplate: (data: CreateTemplateData) => Promise<void>
   updateTemplate: (id: number, data: UpdateTemplateData) => Promise<void>
   deleteTemplate: (id: number) => Promise<void>
+  selectTemplate: (template: Template | null) => void
   
   // Search and filtering
   setSearchFilters: (filters: Partial<SearchFilters>) => void
   setSortOptions: (options: Partial<SortOptions>) => void
   getFilteredPrompts: () => readonly Prompt[]
   searchPrompts: (query: string) => Promise<void>
+  
+  // Template search
+  setTemplateSearchQuery: (query: string) => void
+  getFilteredTemplates: () => readonly Template[]
+  
+  // View modes
+  setPromptViewMode: (mode: 'list' | 'grid') => void
+  setTemplateViewMode: (mode: 'list' | 'grid') => void
   
   // UI actions
   openPromptEditor: (prompt?: Prompt) => void
@@ -75,6 +99,15 @@ interface PromptStore {
   closePromptViewer: () => void
   openSettings: () => void
   closeSettings: () => void
+  
+  // Template editor actions
+  openTemplateEditor: (template?: Template) => void
+  closeTemplateEditor: () => void
+  
+  // Draft persistence
+  saveDraftFormData: (formData: any) => void
+  clearDraftFormData: () => void
+  getDraftFormData: () => any
   
   // Toast management
   addToast: (toast: Omit<ToastMessage, 'id'>) => void
@@ -88,6 +121,86 @@ interface PromptStore {
 
 const generateToastId = (): string => {
   return Math.random().toString(36).substring(2) + Date.now().toString(36)
+}
+
+// Persistence helpers
+const STORAGE_KEYS = {
+  EDITOR_STATE: 'promptStudio_editorState',
+  SELECTED_PROMPT: 'promptStudio_selectedPrompt',
+  DRAFT_FORM_DATA: 'promptStudio_draftFormData',
+  PROMPT_VIEW_MODE: 'promptStudio_promptViewMode',
+  TEMPLATE_VIEW_MODE: 'promptStudio_templateViewMode'
+}
+
+const getStoredEditorState = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.EDITOR_STATE)
+    return stored ? JSON.parse(stored) : { isOpen: false }
+  } catch {
+    return { isOpen: false }
+  }
+}
+
+const getStoredSelectedPrompt = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.SELECTED_PROMPT)
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
+
+const persistEditorState = (isOpen: boolean, selectedPrompt: Prompt | null) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.EDITOR_STATE, JSON.stringify({ isOpen }))
+    localStorage.setItem(STORAGE_KEYS.SELECTED_PROMPT, JSON.stringify(selectedPrompt))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+const clearPersistedEditorState = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.EDITOR_STATE)
+    localStorage.removeItem(STORAGE_KEYS.SELECTED_PROMPT)
+    localStorage.removeItem(STORAGE_KEYS.DRAFT_FORM_DATA)
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+const persistDraftFormData = (formData: any) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.DRAFT_FORM_DATA, JSON.stringify(formData))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+const getStoredDraftFormData = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.DRAFT_FORM_DATA)
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
+
+const getStoredViewMode = (key: string, defaultMode: 'list' | 'grid' = 'list') => {
+  try {
+    const stored = localStorage.getItem(key)
+    return stored ? JSON.parse(stored) : defaultMode
+  } catch {
+    return defaultMode
+  }
+}
+
+const persistViewMode = (key: string, mode: 'list' | 'grid') => {
+  try {
+    localStorage.setItem(key, JSON.stringify(mode))
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 export const usePromptStore = create<PromptStore>()(
@@ -113,11 +226,21 @@ export const usePromptStore = create<PromptStore>()(
         direction: 'desc'
       },
       
-      selectedPrompt: null,
-      isPromptEditorOpen: false,
+      templateSearchQuery: '',
+      
+      promptViewMode: getStoredViewMode(STORAGE_KEYS.PROMPT_VIEW_MODE, 'list'),
+      templateViewMode: getStoredViewMode(STORAGE_KEYS.TEMPLATE_VIEW_MODE, 'list'),
+      
+      selectedPrompt: getStoredSelectedPrompt(),
+      isPromptEditorOpen: getStoredEditorState().isOpen,
       isPromptViewerOpen: false,
       isSettingsOpen: false,
+      
+      selectedTemplate: null,
+      isTemplateEditorOpen: false,
+      
       toasts: [],
+      draftFormData: getStoredDraftFormData(),
 
       // Data fetching actions
       fetchPrompts: async () => {
@@ -197,6 +320,8 @@ export const usePromptStore = create<PromptStore>()(
             prompts: [newPrompt, ...prompts],
             loading: false 
           })
+          // Clear editor persistence after successful save
+          clearPersistedEditorState()
           get().addToast({
             type: 'success',
             title: 'Success',
@@ -224,6 +349,8 @@ export const usePromptStore = create<PromptStore>()(
             selectedPrompt: updatedPrompt,
             loading: false 
           })
+          // Clear editor persistence after successful save
+          clearPersistedEditorState()
           get().addToast({
             type: 'success',
             title: 'Success',
@@ -267,8 +394,55 @@ export const usePromptStore = create<PromptStore>()(
         }
       },
 
+      duplicatePrompt: async (id: number) => {
+        try {
+          set({ loading: true, error: null })
+          const { prompts } = get()
+          const originalPrompt = prompts.find(p => p.id === id)
+          
+          if (!originalPrompt) {
+            throw new Error('Prompt not found')
+          }
+
+          // Create duplicate data with "(Copy)" suffix
+          const duplicateData: CreatePromptData = {
+            title: `${originalPrompt.title} (Copy)`,
+            content: originalPrompt.content,
+            description: originalPrompt.description || '',
+            category_id: originalPrompt.category_id,
+            template_id: originalPrompt.template_id,
+            tags: [...originalPrompt.tags], // Copy tags array
+            is_favorite: false // Don't duplicate favorite status
+          }
+
+          const newPrompt = await window.electronAPI.createPrompt(duplicateData)
+          set({ 
+            prompts: [newPrompt, ...prompts],
+            loading: false 
+          })
+          
+          get().addToast({
+            type: 'success',
+            title: 'Success',
+            description: 'Prompt duplicated successfully'
+          })
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to duplicate prompt'
+          set({ error: errorMessage, loading: false })
+          get().addToast({
+            type: 'error',
+            title: 'Error',
+            description: errorMessage
+          })
+        }
+      },
+
       selectPrompt: (prompt: Prompt | null) => {
         set({ selectedPrompt: prompt })
+      },
+
+      selectTemplate: (template: Template | null) => {
+        set({ selectedTemplate: template })
       },
 
       // Category operations
@@ -563,10 +737,12 @@ export const usePromptStore = create<PromptStore>()(
 
       // UI actions
       openPromptEditor: (prompt?: Prompt) => {
+        const selectedPrompt = prompt || null
         set({ 
-          selectedPrompt: prompt || null,
+          selectedPrompt,
           isPromptEditorOpen: true 
         })
+        persistEditorState(true, selectedPrompt)
       },
 
       closePromptEditor: () => {
@@ -574,6 +750,7 @@ export const usePromptStore = create<PromptStore>()(
           selectedPrompt: null,
           isPromptEditorOpen: false 
         })
+        clearPersistedEditorState()
       },
 
       openPromptViewer: (prompt: Prompt) => {
@@ -602,6 +779,25 @@ export const usePromptStore = create<PromptStore>()(
 
       closeSettings: () => {
         set({ isSettingsOpen: false })
+      },
+
+      // Template editor actions
+      openTemplateEditor: (template?: Template) => {
+        set({ 
+          selectedTemplate: template || null,
+          isTemplateEditorOpen: true,
+          // Close other editors
+          isPromptEditorOpen: false,
+          isPromptViewerOpen: false,
+          isSettingsOpen: false
+        })
+      },
+
+      closeTemplateEditor: () => {
+        set({ 
+          selectedTemplate: null,
+          isTemplateEditorOpen: false 
+        })
       },
 
       // Toast management
@@ -634,6 +830,57 @@ export const usePromptStore = create<PromptStore>()(
 
       clearError: () => {
         set({ error: null })
+      },
+
+      // Draft persistence actions
+      saveDraftFormData: (formData: any) => {
+        set({ draftFormData: formData })
+        persistDraftFormData(formData)
+      },
+
+      clearDraftFormData: () => {
+        set({ draftFormData: null })
+        try {
+          localStorage.removeItem(STORAGE_KEYS.DRAFT_FORM_DATA)
+        } catch {
+          // Ignore storage errors
+        }
+      },
+
+      getDraftFormData: () => {
+        return get().draftFormData
+      },
+
+      // Template search actions
+      setTemplateSearchQuery: (query: string) => {
+        set({ templateSearchQuery: query })
+      },
+
+      getFilteredTemplates: () => {
+        const { templates, templateSearchQuery } = get()
+        
+        if (!templateSearchQuery.trim()) {
+          return templates
+        }
+        
+        const query = templateSearchQuery.toLowerCase()
+        return templates.filter(template =>
+          template.name.toLowerCase().includes(query) ||
+          template.content.toLowerCase().includes(query) ||
+          template.description?.toLowerCase().includes(query) ||
+          template.variables.some(variable => variable.toLowerCase().includes(query))
+        ) as readonly Template[]
+      },
+
+      // View mode actions
+      setPromptViewMode: (mode: 'list' | 'grid') => {
+        set({ promptViewMode: mode })
+        persistViewMode(STORAGE_KEYS.PROMPT_VIEW_MODE, mode)
+      },
+
+      setTemplateViewMode: (mode: 'list' | 'grid') => {
+        set({ templateViewMode: mode })
+        persistViewMode(STORAGE_KEYS.TEMPLATE_VIEW_MODE, mode)
       }
     }),
     {

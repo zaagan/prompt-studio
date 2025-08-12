@@ -1254,6 +1254,7 @@ class PromptStudioApp {
     this.db = null;
     this.currentMode = "desktop";
     this.isDev = process.env.IS_DEV === "true";
+    this.isQuitting = false;
     this.setupEventHandlers();
   }
   setupEventHandlers() {
@@ -1273,7 +1274,7 @@ class PromptStudioApp {
       }
     });
     electron.app.on("before-quit", async () => {
-      electron.app.isQuitting = true;
+      this.isQuitting = true;
       if (this.db) {
         try {
           const { closeDatabase: closeDatabase2 } = await Promise.resolve().then(() => init);
@@ -1296,6 +1297,7 @@ class PromptStudioApp {
       this.createTray();
       if (this.currentMode === "desktop" && this.mainWindow) {
         this.mainWindow.show();
+        this.mainWindow.focus();
       }
     } catch (error) {
       console.error("Failed to initialize app:", error);
@@ -1324,10 +1326,11 @@ class PromptStudioApp {
     this.mainWindow.once("ready-to-show", () => {
       if (this.currentMode === "desktop" && this.mainWindow) {
         this.mainWindow.show();
+        this.mainWindow.focus();
       }
     });
     this.mainWindow.on("close", (event) => {
-      if (!electron.app.isQuitting) {
+      if (!this.isQuitting) {
         event.preventDefault();
         if (this.mainWindow) {
           this.mainWindow.hide();
@@ -1367,7 +1370,7 @@ class PromptStudioApp {
     const contextMenu = electron.Menu.buildFromTemplate([
       {
         label: "Show Prompt Studio",
-        click: () => this.showApp()
+        click: async () => await this.showApp()
       },
       { type: "separator" },
       {
@@ -1391,27 +1394,33 @@ class PromptStudioApp {
       {
         label: "Quit",
         click: () => {
-          electron.app.isQuitting = true;
+          this.isQuitting = true;
           electron.app.quit();
         }
       }
     ]);
     this.tray.setToolTip("Prompt Studio");
     this.tray.setContextMenu(contextMenu);
-    this.tray.on("click", () => {
+    this.tray.on("click", async () => {
       if (process.platform !== "darwin") {
-        this.toggleApp();
+        await this.toggleApp();
       }
     });
     if (process.platform === "darwin") {
-      this.tray.on("right-click", () => {
+      this.tray.on("right-click", async () => {
         if (this.currentMode === "menubar") {
-          this.toggleMenuBarWindow();
+          await this.toggleMenuBarWindow();
         }
       });
     }
   }
   createTrayIcon() {
+    const trayIconPath = path.join(__dirname, "../assets/tray-icon.png");
+    if (fs.existsSync(trayIconPath)) {
+      const icon2 = electron.nativeImage.createFromPath(trayIconPath);
+      icon2.setTemplateImage(true);
+      return icon2.resize({ width: 16, height: 16 });
+    }
     const iconPath = path.join(__dirname, "../assets/icon.png");
     if (fs.existsSync(iconPath)) {
       const icon2 = electron.nativeImage.createFromPath(iconPath);
@@ -1428,15 +1437,15 @@ class PromptStudioApp {
     const iconPath = path.join(__dirname, "../assets/icon.png");
     return fs.existsSync(iconPath) ? iconPath : "";
   }
-  showApp() {
+  async showApp() {
     if (this.currentMode === "desktop" && this.mainWindow) {
       this.mainWindow.show();
       this.mainWindow.focus();
     } else if (this.currentMode === "menubar") {
-      this.toggleMenuBarWindow();
+      await this.toggleMenuBarWindow();
     }
   }
-  toggleApp() {
+  async toggleApp() {
     if (this.currentMode === "desktop" && this.mainWindow) {
       if (this.mainWindow.isVisible()) {
         this.mainWindow.hide();
@@ -1445,15 +1454,20 @@ class PromptStudioApp {
         this.mainWindow.focus();
       }
     } else {
-      this.toggleMenuBarWindow();
+      await this.toggleMenuBarWindow();
     }
   }
-  toggleMenuBarWindow() {
+  async toggleMenuBarWindow() {
     if (!this.menuBarWindow || !this.tray)
       return;
     if (this.menuBarWindow.isVisible()) {
       this.menuBarWindow.hide();
     } else {
+      if (this.isDev) {
+        await this.menuBarWindow.loadURL("http://localhost:5173/menubar");
+      } else {
+        await this.menuBarWindow.loadFile(path.join(__dirname, "../dist/menubar.html"));
+      }
       const bounds = this.tray.getBounds();
       const x = Math.round(bounds.x + bounds.width / 2 - 200);
       const y = Math.round(bounds.y + bounds.height);
@@ -1471,6 +1485,11 @@ class PromptStudioApp {
       if (this.menuBarWindow)
         this.menuBarWindow.hide();
       if (this.mainWindow) {
+        if (this.isDev) {
+          await this.mainWindow.loadURL("http://localhost:5173");
+        } else {
+          await this.mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+        }
         this.mainWindow.show();
         this.mainWindow.focus();
       }
@@ -1488,7 +1507,7 @@ class PromptStudioApp {
     const contextMenu = electron.Menu.buildFromTemplate([
       {
         label: "Show Prompt Studio",
-        click: () => this.showApp()
+        click: async () => await this.showApp()
       },
       { type: "separator" },
       {
@@ -1512,7 +1531,7 @@ class PromptStudioApp {
       {
         label: "Quit",
         click: () => {
-          electron.app.isQuitting = true;
+          this.isQuitting = true;
           electron.app.quit();
         }
       }

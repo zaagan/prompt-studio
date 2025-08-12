@@ -47,6 +47,7 @@ class PromptStudioApp {
   private db: Database | null = null
   private currentMode: 'desktop' | 'menubar' = 'desktop'
   private readonly isDev: boolean = process.env.IS_DEV === 'true'
+  private isQuitting: boolean = false
 
   constructor() {
     this.setupEventHandlers()
@@ -72,7 +73,7 @@ class PromptStudioApp {
     })
 
     app.on('before-quit', async () => {
-      app.isQuitting = true
+      this.isQuitting = true
       // Close database connection
       if (this.db) {
         try {
@@ -106,6 +107,7 @@ class PromptStudioApp {
       // Show appropriate window
       if (this.currentMode === 'desktop' && this.mainWindow) {
         this.mainWindow.show()
+        this.mainWindow.focus()
       }
     } catch (error) {
       console.error('Failed to initialize app:', error)
@@ -137,11 +139,12 @@ class PromptStudioApp {
     this.mainWindow.once('ready-to-show', () => {
       if (this.currentMode === 'desktop' && this.mainWindow) {
         this.mainWindow.show()
+        this.mainWindow.focus()
       }
     })
 
     this.mainWindow.on('close', (event) => {
-      if (!app.isQuitting) {
+      if (!this.isQuitting) {
         event.preventDefault()
         if (this.mainWindow) {
           this.mainWindow.hide()
@@ -186,7 +189,7 @@ class PromptStudioApp {
     const contextMenu = Menu.buildFromTemplate([
       {
         label: 'Show Prompt Studio',
-        click: () => this.showApp(),
+        click: async () => await this.showApp(),
       },
       { type: 'separator' },
       {
@@ -210,7 +213,7 @@ class PromptStudioApp {
       {
         label: 'Quit',
         click: () => {
-          app.isQuitting = true
+          this.isQuitting = true
           app.quit()
         },
       },
@@ -219,22 +222,30 @@ class PromptStudioApp {
     this.tray.setToolTip('Prompt Studio')
     this.tray.setContextMenu(contextMenu)
 
-    this.tray.on('click', () => {
+    this.tray.on('click', async () => {
       if (process.platform !== 'darwin') {
-        this.toggleApp()
+        await this.toggleApp()
       }
     })
 
     if (process.platform === 'darwin') {
-      this.tray.on('right-click', () => {
+      this.tray.on('right-click', async () => {
         if (this.currentMode === 'menubar') {
-          this.toggleMenuBarWindow()
+          await this.toggleMenuBarWindow()
         }
       })
     }
   }
 
   private createTrayIcon(): nativeImage.NativeImage {
+    const trayIconPath = join(__dirname, '../assets/tray-icon.png')
+    if (existsSync(trayIconPath)) {
+      const icon = nativeImage.createFromPath(trayIconPath)
+      icon.setTemplateImage(true)
+      return icon.resize({ width: 16, height: 16 })
+    }
+
+    // Fallback to regular icon
     const iconPath = join(__dirname, '../assets/icon.png')
     if (existsSync(iconPath)) {
       const icon = nativeImage.createFromPath(iconPath)
@@ -255,16 +266,16 @@ class PromptStudioApp {
     return existsSync(iconPath) ? iconPath : ''
   }
 
-  private showApp(): void {
+  private async showApp(): Promise<void> {
     if (this.currentMode === 'desktop' && this.mainWindow) {
       this.mainWindow.show()
       this.mainWindow.focus()
     } else if (this.currentMode === 'menubar') {
-      this.toggleMenuBarWindow()
+      await this.toggleMenuBarWindow()
     }
   }
 
-  private toggleApp(): void {
+  private async toggleApp(): Promise<void> {
     if (this.currentMode === 'desktop' && this.mainWindow) {
       if (this.mainWindow.isVisible()) {
         this.mainWindow.hide()
@@ -273,16 +284,23 @@ class PromptStudioApp {
         this.mainWindow.focus()
       }
     } else {
-      this.toggleMenuBarWindow()
+      await this.toggleMenuBarWindow()
     }
   }
 
-  private toggleMenuBarWindow(): void {
+  private async toggleMenuBarWindow(): Promise<void> {
     if (!this.menuBarWindow || !this.tray) return
 
     if (this.menuBarWindow.isVisible()) {
       this.menuBarWindow.hide()
     } else {
+      // Ensure menubar window has the correct content
+      if (this.isDev) {
+        await this.menuBarWindow.loadURL('http://localhost:5173/menubar')
+      } else {
+        await this.menuBarWindow.loadFile(join(__dirname, '../dist/menubar.html'))
+      }
+      
       const bounds = this.tray.getBounds()
       const x = Math.round(bounds.x + bounds.width / 2 - 200)
       const y = Math.round(bounds.y + bounds.height)
@@ -303,6 +321,12 @@ class PromptStudioApp {
     if (mode === 'desktop') {
       if (this.menuBarWindow) this.menuBarWindow.hide()
       if (this.mainWindow) {
+        // Ensure the main window loads the correct URL for desktop mode
+        if (this.isDev) {
+          await this.mainWindow.loadURL('http://localhost:5173')
+        } else {
+          await this.mainWindow.loadFile(join(__dirname, '../dist/index.html'))
+        }
         this.mainWindow.show()
         this.mainWindow.focus()
       }
@@ -320,7 +344,7 @@ class PromptStudioApp {
     const contextMenu = Menu.buildFromTemplate([
       {
         label: 'Show Prompt Studio',
-        click: () => this.showApp(),
+        click: async () => await this.showApp(),
       },
       { type: 'separator' },
       {
@@ -344,7 +368,7 @@ class PromptStudioApp {
       {
         label: 'Quit',
         click: () => {
-          app.isQuitting = true
+          this.isQuitting = true
           app.quit()
         },
       },

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="540" height="380" viewBox="0 0 540 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f3f4f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e5e7eb;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="540" height="380" fill="url(#bg-gradient)"/>
+  
+  <!-- Title -->
+  <text x="270" y="50" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="600" text-anchor="middle" fill="#1f2937">
+    Install Mero Watchlist
+  </text>
+  
+  <!-- Instruction text -->
+  <text x="270" y="85" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" text-anchor="middle" fill="#6b7280">
+    Drag the app to your Applications folder
+  </text>
+  
+  <!-- Arrow -->
+  <path d="M 220 190 L 320 190" stroke="#9ca3af" stroke-width="3" stroke-dasharray="5,5"/>
+  <path d="M 315 185 L 320 190 L 315 195" stroke="#9ca3af" stroke-width="3" fill="none"/>
+  
+  <!-- App icon placeholder -->
+  <rect x="100" y="160" width="60" height="60" rx="12" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="130" y="195" font-family="system-ui" font-size="12" text-anchor="middle" fill="#6b7280">App</text>
+  
+  <!-- Applications folder icon placeholder -->
+  <rect x="380" y="160" width="60" height="60" rx="12" fill="#ffffff" stroke="#d1d5db" stroke-width="1"/>
+  <text x="410" y="195" font-family="system-ui" font-size="12" text-anchor="middle" fill="#6b7280">Applications</text>
+</svg>

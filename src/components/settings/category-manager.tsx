@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus, Edit, Trash2, Folder, Palette } from 'lucide-react'
+import { Plus, Edit, Trash2, Folder, Palette, Search, X } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +12,7 @@ import type { Category } from '@/types'
 export function CategoryManager() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | undefined>(undefined)
+  const [searchQuery, setSearchQuery] = useState('')
   
   const { categories, prompts, deleteCategory, addToast } = usePromptStore()
 
@@ -55,19 +57,39 @@ export function CategoryManager() {
     return prompts.filter(p => p.category_id === categoryId).length
   }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Category Management</h2>
-        <p className="text-muted-foreground">
-          Organize your prompts with categories
-        </p>
-      </div>
+  const filteredCategories = categories.filter(category =>
+    category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    category.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
-      <div className="space-y-4">
+  return (
+    <div className="h-full flex flex-col space-y-6">
+      <div className="space-y-4 flex-shrink-0">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search categories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-9"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
-            {categories.length} {categories.length === 1 ? 'category' : 'categories'}
+            {filteredCategories.length} {filteredCategories.length === 1 ? 'category' : 'categories'}
+            {searchQuery && ` (filtered)`}
           </div>
           <Button onClick={handleCreateCategory}>
             <Plus className="h-4 w-4 mr-2" />
@@ -76,25 +98,32 @@ export function CategoryManager() {
         </div>
       </div>
 
-      <ScrollArea className="h-[500px]">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="space-y-4 pb-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {categories.length === 0 ? (
+            {filteredCategories.length === 0 ? (
             <Card className="col-span-full">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Folder className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No categories yet</h3>
+                <h3 className="text-lg font-medium mb-2">
+                  {searchQuery ? 'No categories found' : 'No categories yet'}
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Create your first category to organize your prompts
+                  {searchQuery 
+                    ? 'Try adjusting your search criteria.'
+                    : 'Create your first category to organize your prompts'
+                  }
                 </p>
-                <Button onClick={handleCreateCategory}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Category
-                </Button>
+                {!searchQuery && (
+                  <Button onClick={handleCreateCategory}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Category
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
-            categories.map((category) => {
+            filteredCategories.map((category) => {
               const promptCount = getPromptCount(category.id)
               
               return (

@@ -4,6 +4,7 @@ import { Sidebar } from './sidebar'
 import { MainContent } from './main-content'
 import { PromptEditor } from '../prompts/prompt-editor'
 import { PromptViewer } from '../prompts/prompt-viewer'
+import { TemplateEditor } from '../templates/template-editor'
 import { SettingsView } from '../settings/settings-view'
 import { AppHeader } from './app-header'
 import { usePromptStore } from '@/stores/usePromptStore'
@@ -14,9 +15,12 @@ export function DesktopLayout() {
     isPromptEditorOpen, 
     isPromptViewerOpen, 
     isSettingsOpen,
+    isTemplateEditorOpen,
     selectedPrompt,
+    selectedTemplate,
     closePromptViewer,
-    closeSettings
+    closeSettings,
+    closeTemplateEditor
   } = usePromptStore()
 
   return (
@@ -50,19 +54,21 @@ export function DesktopLayout() {
               <ResizablePanelGroup direction="horizontal">
                 {/* Prompt List and Content */}
                 <ResizablePanel 
-                  defaultSize={(isPromptEditorOpen || isPromptViewerOpen) ? 60 : 100}
+                  defaultSize={(isPromptEditorOpen || isPromptViewerOpen || isTemplateEditorOpen) ? 60 : 100}
                   minSize={40}
                 >
                   <MainContent />
                 </ResizablePanel>
 
                 {/* Right Panel - Editor or Viewer */}
-                {(isPromptEditorOpen || isPromptViewerOpen) && (
+                {(isPromptEditorOpen || isPromptViewerOpen || isTemplateEditorOpen) && (
                   <>
                     <ResizableHandle withHandle />
                     <ResizablePanel defaultSize={40} minSize={30} maxSize={70}>
                       {isPromptEditorOpen ? (
                         <PromptEditor />
+                      ) : isTemplateEditorOpen ? (
+                        <TemplateEditor />
                       ) : isPromptViewerOpen && selectedPrompt ? (
                         <PromptViewer 
                           key={selectedPrompt.id} // Force re-render when prompt changes

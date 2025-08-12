@@ -23,20 +23,39 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>('system')
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Initialize with saved theme if available
+    try {
+      const savedTheme = localStorage.getItem('prompt-studio-theme') as Theme
+      if (savedTheme && ['light', 'dark', 'system', 'midnight', 'ocean', 'forest', 'macos', 'matte', 'cosmic', 'sunset', 'arctic', 'rose'].includes(savedTheme)) {
+        return savedTheme
+      }
+    } catch (error) {
+      console.warn('Failed to load theme from localStorage:', error)
+    }
+    return 'system'
+  })
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light')
 
+  // Separate effect to load theme on mount (for cases where useState initializer doesn't work)
   useEffect(() => {
-    // Load saved theme from localStorage
-    const savedTheme = localStorage.getItem('theme') as Theme
-    if (savedTheme) {
-      setTheme(savedTheme)
+    try {
+      const savedTheme = localStorage.getItem('prompt-studio-theme') as Theme
+      if (savedTheme && ['light', 'dark', 'system', 'midnight', 'ocean', 'forest', 'macos', 'matte', 'cosmic', 'sunset', 'arctic', 'rose'].includes(savedTheme)) {
+        setTheme(savedTheme)
+      }
+    } catch (error) {
+      console.warn('Failed to load theme from localStorage on mount:', error)
     }
   }, [])
 
   useEffect(() => {
-    // Save theme to localStorage
-    localStorage.setItem('theme', theme)
+    // Save theme to localStorage with better key
+    try {
+      localStorage.setItem('prompt-studio-theme', theme)
+    } catch (error) {
+      console.warn('Failed to save theme to localStorage:', error)
+    }
 
     // Apply theme to document
     const root = document.documentElement
@@ -80,8 +99,21 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     setActualTheme(resolvedTheme)
   }, [theme])
 
+  const handleSetTheme = (newTheme: Theme) => {
+    try {
+      // Immediately save to localStorage
+      localStorage.setItem('prompt-studio-theme', newTheme)
+      // Update state
+      setTheme(newTheme)
+    } catch (error) {
+      console.warn('Failed to save theme:', error)
+      // Still update state even if localStorage fails
+      setTheme(newTheme)
+    }
+  }
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, actualTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme: handleSetTheme, actualTheme }}>
       {children}
     </ThemeContext.Provider>
   )

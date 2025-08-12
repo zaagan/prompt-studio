@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { usePromptStore } from '@/stores/usePromptStore'
 import { cn } from '@/lib/utils'
+import AppIcon from '/assets/icon.png'
 import { CategoryModal } from '../modals/category-modal'
 import { ThemeSwitcher } from '../ui/theme-switcher'
 import { parseSearchQuery, formatSearchQuery } from '@/lib/search-parser'
@@ -356,7 +357,14 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
       {/* Header */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Prompt Studio</h2>
+          <div className="flex items-center gap-2">
+            <img 
+              src={AppIcon} 
+              alt="Prompt Studio" 
+              className="h-5 w-5 object-contain rounded"
+            />
+            <h2 className="text-sm font-semibold">Prompt Studio</h2>
+          </div>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -376,17 +384,17 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
               variant={currentParsedQuery.isFavorite === true ? "secondary" : "ghost"}
               size="sm"
               onClick={handleFavoriteFilter}
-              className="w-full justify-start h-8 text-xs"
+              className="w-full justify-start h-8 text-xs px-2"
             >
               <Heart className={cn(
-                "h-4 w-4 mr-2",
+                "h-4 w-4 mr-2 flex-shrink-0",
                 currentParsedQuery.isFavorite === true && "fill-current"
               )} />
-              Favorites
+              <span className="truncate">Favorites</span>
               {favoritePrompts.length > 0 && (
-                <Badge variant="secondary" className="ml-auto h-5 text-xs">
-                  {favoritePrompts.length}
-                </Badge>
+                <span className="bg-secondary text-secondary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none min-w-[18px] text-center flex-shrink-0 ml-2">
+                  {favoritePrompts.length > 99 ? '99+' : favoritePrompts.length}
+                </span>
               )}
             </Button>
           </div>
@@ -397,23 +405,21 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
             onOpenChange={() => toggleSection('categories')}
           >
             <CollapsibleTrigger asChild>
-              <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start h-8 text-xs font-medium px-2"
+              >
+                {sectionsOpen.categories ? (
+                  <ChevronDown className="h-4 w-4 mr-2 flex-shrink-0" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 mr-2 flex-shrink-0" />
+                )}
+                <span className="truncate">Categories</span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex-1 justify-start h-8 text-xs font-medium"
-                >
-                  {sectionsOpen.categories ? (
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 mr-2" />
-                  )}
-                  Categories
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 mr-1"
+                  className="h-5 w-5 p-0 flex-shrink-0 ml-2"
                   onClick={(e) => {
                     e.stopPropagation()
                     setCategoryModalOpen(true)
@@ -421,7 +427,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
-              </div>
+              </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-1 ml-6">
               <Button
@@ -433,7 +439,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 All Categories
               </Button>
               {categories.map((category) => (
-                <div key={category.id} className="group flex items-center">
+                <div key={category.id} className="group">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -441,13 +447,47 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                           variant={currentParsedQuery.category === category.name ? "secondary" : "ghost"}
                           size="sm"
                           onClick={() => handleCategoryFilter(category.id)}
-                          className="flex-1 justify-start h-7 text-xs"
+                          className="w-full justify-start h-7 text-xs px-2"
                         >
                           <div 
                             className="h-2 w-2 rounded-full mr-2 shrink-0"
                             style={{ backgroundColor: category.color }}
                           />
                           <span className="truncate">{category.name}</span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {category.description && (
+                                <>
+                                  <DropdownMenuItem className="text-xs" disabled>
+                                    <Info className="h-3 w-3 mr-2" />
+                                    <span className="max-w-[200px] truncate">{category.description}</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              <DropdownMenuItem onClick={() => handleEditCategory(category)}>
+                                <Edit className="h-3 w-3 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteCategory(category)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </Button>
                       </TooltipTrigger>
                       {category.description && (
@@ -457,40 +497,6 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                       )}
                     </Tooltip>
                   </TooltipProvider>
-                  
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreVertical className="h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {category.description && (
-                        <>
-                          <DropdownMenuItem className="text-xs" disabled>
-                            <Info className="h-3 w-3 mr-2" />
-                            <span className="max-w-[200px] truncate">{category.description}</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                        </>
-                      )}
-                      <DropdownMenuItem onClick={() => handleEditCategory(category)}>
-                        <Edit className="h-3 w-3 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteCategory(category)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-3 w-3 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               ))}
             </CollapsibleContent>
@@ -506,14 +512,26 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start h-8 text-xs font-medium"
+                  className="w-full justify-start h-8 text-xs font-medium px-2"
                 >
                   {sectionsOpen.tags ? (
-                    <ChevronDown className="h-4 w-4 mr-2" />
+                    <ChevronDown className="h-4 w-4 mr-2 flex-shrink-0" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 mr-2" />
+                    <ChevronRight className="h-4 w-4 mr-2 flex-shrink-0" />
                   )}
-                  Tags
+                  <span className="truncate">Tags</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0 flex-shrink-0 ml-2"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openSettings()
+                      // Note: Would need to add logic to switch to tags tab in settings
+                    }}
+                  >
+                    <Settings className="h-3 w-3" />
+                  </Button>
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-1 ml-6">
@@ -543,14 +561,14 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-start h-8 text-xs font-medium"
+                  className="w-full justify-start h-8 text-xs font-medium px-2"
                 >
                   {sectionsOpen.recent ? (
-                    <ChevronDown className="h-4 w-4 mr-2" />
+                    <ChevronDown className="h-4 w-4 mr-2 flex-shrink-0" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 mr-2" />
+                    <ChevronRight className="h-4 w-4 mr-2 flex-shrink-0" />
                   )}
-                  Recent
+                  <span className="truncate">Recent</span>
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-1 ml-6">
