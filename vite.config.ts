@@ -4,6 +4,8 @@ import electron from 'vite-plugin-electron'
 import renderer from 'vite-plugin-electron-renderer'
 import path from 'path'
 
+const isProduction = process.env.NODE_ENV === 'production'
+
 export default defineConfig({
   plugins: [
     react(),
@@ -17,8 +19,8 @@ export default defineConfig({
         },
         vite: {
           build: {
-            sourcemap: true,
-            minify: false,
+            sourcemap: isProduction ? false : true,
+            minify: isProduction ? 'esbuild' : false,
             outDir: 'dist-electron',
             rollupOptions: {
               external: ['sqlite3', 'electron'],
@@ -33,8 +35,8 @@ export default defineConfig({
         },
         vite: {
           build: {
-            sourcemap: 'inline',
-            minify: false,
+            sourcemap: isProduction ? false : 'inline',
+            minify: isProduction ? 'esbuild' : false,
             outDir: 'dist-electron',
             rollupOptions: {
               external: ['electron'],
@@ -57,7 +59,21 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: isProduction ? false : true,
+    minify: isProduction ? 'esbuild' : false,
+    target: 'esnext',
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        menubar: path.resolve(__dirname, 'menubar.html'),
+      },
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
+        },
+      },
+    },
   },
   server: {
     port: 5173,

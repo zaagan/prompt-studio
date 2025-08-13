@@ -7,10 +7,10 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && electron-builder",
-    "build:mac": "vite build && electron-builder --mac",
-    "build:win": "vite build && electron-builder --win",
-    "build:linux": "vite build && electron-builder --linux",
+    "build": "cross-env NODE_ENV=production vite build && electron-builder",
+    "build:mac": "cross-env NODE_ENV=production vite build && electron-builder --mac",
+    "build:win": "cross-env NODE_ENV=production vite build && electron-builder --win",
+    "build:linux": "cross-env NODE_ENV=production vite build && electron-builder --linux",
     "preview": "vite preview",
     "electron": "wait-on tcp:5173 && cross-env IS_DEV=true electron .",
     "electron:pack": "electron-builder",
@@ -91,6 +91,9 @@
       "dist-electron/**/*",
       "assets/**/*"
     ],
+    "nodeGypRebuild": false,
+    "buildDependenciesFromSource": true,
+    "npmRebuild": true,
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "assets/icon.icns",

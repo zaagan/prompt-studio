@@ -384,13 +384,6 @@ class PromptStudioApp {
     this.tray.setContextMenu(contextMenu)
   }
 
-  private openPreferences(): void {
-    if (this.mainWindow) {
-      this.mainWindow.show()
-      this.mainWindow.focus()
-      this.mainWindow.webContents.send('open-preferences')
-    }
-  }
 
   private setupIpcHandlers(): void {
     // System handlers (don't require database)
