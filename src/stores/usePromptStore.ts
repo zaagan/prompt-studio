@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { parseSearchQuery } from '@/lib/search-parser'
+import { generateSecureHash } from '@/lib/secure-hash'
 import type { 
   Prompt, 
   Category, 
@@ -15,6 +16,29 @@ import type {
   SortOptions,
   ToastMessage
 } from '@/types'
+
+// MCP Types
+interface McpServerConfig {
+  name: string
+  description: string
+  port: number
+  host: string
+  enableAuth: boolean
+  apiKey: string
+  maxConnections: number
+  rateLimit: number
+  enableCors: boolean
+  allowedOrigins: string[]
+  enableLogging: boolean
+  logLevel: 'debug' | 'info' | 'warn' | 'error'
+}
+
+interface ExposedPrompt {
+  id: number
+  exposed: boolean
+  endpoint: string
+  secureHash: string
+}
 
 interface PromptStore {
   // State
@@ -54,6 +78,10 @@ interface PromptStore {
   
   // Recently interacted prompts (IDs in order of interaction)
   recentlyInteractedIds: number[]
+  
+  // MCP Server
+  mcpConfig: McpServerConfig
+  exposedPrompts: readonly ExposedPrompt[]
   
   // Actions
   // Data fetching
@@ -96,6 +124,13 @@ interface PromptStore {
   setPromptViewMode: (mode: 'list' | 'grid') => void
   setTemplateViewMode: (mode: 'list' | 'grid') => void
   
+  // MCP Server actions
+  updateMcpConfig: (config: Partial<McpServerConfig>) => void
+  togglePromptExposure: (promptId: number) => void
+  setPromptExposure: (promptId: number, exposed: boolean) => void
+  getExposedPrompts: () => readonly ExposedPrompt[]
+  migrateLegacyEndpoints: () => void
+  
   // UI actions
   openPromptEditor: (prompt?: Prompt) => void
   closePromptEditor: () => void
@@ -133,7 +168,9 @@ const STORAGE_KEYS = {
   SELECTED_PROMPT: 'promptStudio_selectedPrompt',
   DRAFT_FORM_DATA: 'promptStudio_draftFormData',
   PROMPT_VIEW_MODE: 'promptStudio_promptViewMode',
-  TEMPLATE_VIEW_MODE: 'promptStudio_templateViewMode'
+  TEMPLATE_VIEW_MODE: 'promptStudio_templateViewMode',
+  MCP_CONFIG: 'promptStudio_mcpConfig',
+  MCP_EXPOSED_PROMPTS: 'promptStudio_mcpExposedPrompts'
 }
 
 const getStoredEditorState = () => {
@@ -207,6 +244,67 @@ const persistViewMode = (key: string, mode: 'list' | 'grid') => {
   }
 }
 
+// MCP persistence helpers
+const getStoredMcpConfig = (): McpServerConfig => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.MCP_CONFIG)
+    return stored ? JSON.parse(stored) : {
+      name: 'Prompt Studio MCP Server',
+      description: 'Exposes prompt library as MCP tools and resources',
+      port: 3000,
+      host: '0.0.0.0',
+      enableAuth: true,
+      apiKey: '',
+      maxConnections: 100,
+      rateLimit: 60,
+      enableCors: true,
+      allowedOrigins: ['*'],
+      enableLogging: true,
+      logLevel: 'info' as const
+    }
+  } catch {
+    return {
+      name: 'Prompt Studio MCP Server',
+      description: 'Exposes prompt library as MCP tools and resources',
+      port: 3000,
+      host: '0.0.0.0',
+      enableAuth: true,
+      apiKey: '',
+      maxConnections: 100,
+      rateLimit: 60,
+      enableCors: true,
+      allowedOrigins: ['*'],
+      enableLogging: true,
+      logLevel: 'info' as const
+    }
+  }
+}
+
+const getStoredExposedPrompts = (): ExposedPrompt[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.MCP_EXPOSED_PROMPTS)
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
+const persistMcpConfig = (config: McpServerConfig) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.MCP_CONFIG, JSON.stringify(config))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+const persistExposedPrompts = (exposedPrompts: ExposedPrompt[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.MCP_EXPOSED_PROMPTS, JSON.stringify(exposedPrompts))
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 // Track recently interacted prompts
 const MAX_RECENT_ITEMS = 10
 const trackInteraction = (promptId: number, currentIds: number[]): number[] => {
@@ -258,6 +356,10 @@ export const usePromptStore = create<PromptStore>()(
       toasts: [],
       draftFormData: getStoredDraftFormData(),
       recentlyInteractedIds: JSON.parse(localStorage.getItem('recentlyInteractedPrompts') || '[]'),
+      
+      // MCP Server state
+      mcpConfig: getStoredMcpConfig(),
+      exposedPrompts: getStoredExposedPrompts(),
 
       // Data fetching actions
       fetchPrompts: async () => {
@@ -935,6 +1037,103 @@ export const usePromptStore = create<PromptStore>()(
       setTemplateViewMode: (mode: 'list' | 'grid') => {
         set({ templateViewMode: mode })
         persistViewMode(STORAGE_KEYS.TEMPLATE_VIEW_MODE, mode)
+      },
+      
+      // MCP Server actions
+      updateMcpConfig: (config: Partial<McpServerConfig>) => {
+        const currentConfig = get().mcpConfig
+        const newConfig = { ...currentConfig, ...config }
+        set({ mcpConfig: newConfig })
+        persistMcpConfig(newConfig)
+      },
+      
+      togglePromptExposure: (promptId: number) => {
+        const exposedPrompts = get().exposedPrompts
+        const prompts = get().prompts
+        const existing = exposedPrompts.find(p => p.id === promptId)
+        
+        if (existing) {
+          // Toggle existing
+          const updated = exposedPrompts.map(p => 
+            p.id === promptId ? { ...p, exposed: !p.exposed } : p
+          )
+          set({ exposedPrompts: updated })
+          persistExposedPrompts(updated)
+        } else {
+          // Add new with secure hash
+          const prompt = prompts.find(p => p.id === promptId)
+          const secureHash = generateSecureHash(promptId, prompt?.title || 'untitled')
+          const newExposed: ExposedPrompt = {
+            id: promptId,
+            exposed: true,
+            endpoint: `/prompts/${secureHash}`,
+            secureHash
+          }
+          const updated = [...exposedPrompts, newExposed]
+          set({ exposedPrompts: updated })
+          persistExposedPrompts(updated)
+        }
+      },
+      
+      setPromptExposure: (promptId: number, exposed: boolean) => {
+        const exposedPrompts = get().exposedPrompts
+        const prompts = get().prompts
+        const existing = exposedPrompts.find(p => p.id === promptId)
+        
+        if (existing) {
+          // Update existing
+          const updated = exposedPrompts.map(p => 
+            p.id === promptId ? { ...p, exposed } : p
+          )
+          set({ exposedPrompts: updated })
+          persistExposedPrompts(updated)
+        } else if (exposed) {
+          // Add new if exposing with secure hash
+          const prompt = prompts.find(p => p.id === promptId)
+          const secureHash = generateSecureHash(promptId, prompt?.title || 'untitled')
+          const newExposed: ExposedPrompt = {
+            id: promptId,
+            exposed: true,
+            endpoint: `/prompts/${secureHash}`,
+            secureHash
+          }
+          const updated = [...exposedPrompts, newExposed]
+          set({ exposedPrompts: updated })
+          persistExposedPrompts(updated)
+        }
+      },
+      
+      getExposedPrompts: () => {
+        return get().exposedPrompts
+      },
+      
+      migrateLegacyEndpoints: () => {
+        const exposedPrompts = get().exposedPrompts
+        const prompts = get().prompts
+        
+        // Find all exposed prompts that don't have secure hashes
+        const legacyPrompts = exposedPrompts.filter(ep => 
+          ep.exposed && (!ep.secureHash || ep.endpoint.includes('/prompts/') && /\/prompts\/\d+$/.test(ep.endpoint))
+        )
+        
+        if (legacyPrompts.length === 0) return
+        
+        // Generate secure hashes for legacy prompts
+        const updated = exposedPrompts.map(ep => {
+          if (legacyPrompts.some(lp => lp.id === ep.id)) {
+            const prompt = prompts.find(p => p.id === ep.id)
+            const secureHash = generateSecureHash(ep.id, prompt?.title || 'untitled')
+            return {
+              ...ep,
+              secureHash,
+              endpoint: `/prompts/${secureHash}`
+            }
+          }
+          return ep
+        })
+        
+        set({ exposedPrompts: updated })
+        persistExposedPrompts(updated)
       }
     }),
     {

@@ -238,6 +238,17 @@ export interface ElectronAPI {
   getCurrentMode(): Promise<'desktop' | 'menubar'>
   factoryReset(): Promise<{ success: boolean; error?: string }>
   
+  // MCP Server
+  startMcpServer(config: any, exposedPrompts: any[]): Promise<{ success: boolean; message: string; port?: number }>
+  stopMcpServer(): Promise<{ success: boolean; message: string }>
+  getMcpServerStatus(): Promise<{ running: boolean; port: number; exposedPrompts: number; logs: any[]; config: any }>
+  updateMcpServerConfig(config: any): Promise<{ success: boolean; message?: string }>
+  updateMcpServerExposedPrompts(exposedPrompts: any[]): Promise<{ success: boolean; message?: string }>
+  clearMcpServerLogs(): Promise<{ success: boolean; message?: string }>
+  
+  // Generic IPC invoke method
+  invoke(channel: string, ...args: any[]): Promise<any>
+  
   // Events
   onOpenPreferences(callback: () => void): void
   removeAllListeners(channel: string): void

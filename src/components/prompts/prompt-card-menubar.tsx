@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Heart, Copy, ChevronDown, ChevronUp, Check, Edit, Calendar, Files } from 'lucide-react'
+import { Heart, Copy, ChevronDown, ChevronUp, Check, Edit, Calendar, Files, GripHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -18,6 +18,8 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [justCopied, setJustCopied] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [contentHeight, setContentHeight] = useState(192) // Default 192px (h-48)
+  const [isDragging, setIsDragging] = useState(false)
   
   const { updatePrompt, duplicatePrompt, addToast } = usePromptStore()
 
@@ -79,6 +81,29 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
     }
   }
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+    
+    const startY = e.clientY
+    const startHeight = contentHeight
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaY = e.clientY - startY
+      const newHeight = Math.max(80, Math.min(400, startHeight + deltaY)) // Min 80px, Max 400px
+      setContentHeight(newHeight)
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+
   return (
     <TooltipProvider>
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
@@ -96,9 +121,19 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
             {/* Header Row */}
             <div className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium line-clamp-1 pr-1">
-                  {prompt.title}
-                </h4>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <h4 className={cn(
+                      "text-sm font-medium line-clamp-1 cursor-help",
+                      isHovered ? "pr-1" : "pr-0"
+                    )}>
+                      {prompt.title}
+                    </h4>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" align="start">
+                    <p className="text-xs max-w-xs break-words">{prompt.title}</p>
+                  </TooltipContent>
+                </Tooltip>
                 
                 {/* Quick metadata */}
                 <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
@@ -143,24 +178,22 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
               </div>
 
               {/* Action Buttons */}
-              <div className={cn(
-                "flex items-center gap-0.5 shrink-0 transition-opacity duration-200",
-                isHovered ? "opacity-100" : "opacity-0"
-              )}>
-                {/* Expand/Collapse */}
+              {isHovered && (
+                <div className="flex items-center gap-1 shrink-0 transition-opacity duration-200 opacity-100">
+                  {/* Expand/Collapse */}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <CollapsibleTrigger asChild>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-5 w-5 p-0"
+                        className="h-4 w-4 p-0"
                         onClick={toggleExpanded}
                       >
                         {isExpanded ? (
-                          <ChevronUp className="h-2.5 w-2.5" />
+                          <ChevronUp className="h-1.5 w-1.5" />
                         ) : (
-                          <ChevronDown className="h-2.5 w-2.5" />
+                          <ChevronDown className="h-1.5 w-1.5" />
                         )}
                       </Button>
                     </CollapsibleTrigger>
@@ -177,12 +210,12 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                       variant="ghost"
                       size="sm"
                       onClick={handleCopy}
-                      className="h-5 w-5 p-0"
+                      className="h-4 w-4 p-0"
                     >
                       {justCopied ? (
-                        <Check className="h-3 w-3 text-green-600" />
+                        <Check className="h-2 w-2 text-green-600" />
                       ) : (
-                        <Copy className="h-2.5 w-2.5" />
+                        <Copy className="h-1.5 w-1.5" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -198,10 +231,10 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                       variant="ghost"
                       size="sm"
                       onClick={handleFavoriteToggle}
-                      className="h-5 w-5 p-0"
+                      className="h-4 w-4 p-0"
                     >
                       <Heart className={cn(
-                        "h-3 w-3",
+                        "h-2 w-2",
                         prompt.is_favorite && "fill-current text-red-500"
                       )} />
                     </Button>
@@ -218,9 +251,9 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                       variant="ghost"
                       size="sm"
                       onClick={handleDuplicate}
-                      className="h-5 w-5 p-0"
+                      className="h-4 w-4 p-0"
                     >
-                      <Files className="h-2.5 w-2.5" />
+                      <Files className="h-1.5 w-1.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -235,16 +268,17 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                       variant="ghost"
                       size="sm"
                       onClick={handleEdit}
-                      className="h-5 w-5 p-0"
+                      className="h-4 w-4 p-0"
                     >
-                      <Edit className="h-2.5 w-2.5" />
+                      <Edit className="h-1.5 w-1.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
                     <p className="text-xs">Edit</p>
                   </TooltipContent>
                 </Tooltip>
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -260,10 +294,26 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                 )}
                 
                 {/* Full Content */}
-                <div className="bg-background/50 rounded p-2 max-h-32 overflow-y-auto">
-                  <p className="text-xs font-mono whitespace-pre-wrap break-words">
-                    {prompt.content}
-                  </p>
+                <div className="relative">
+                  <div 
+                    className="bg-background/50 rounded-t p-2 overflow-y-auto border-b-0"
+                    style={{ height: `${contentHeight}px` }}
+                  >
+                    <p className="text-xs font-mono whitespace-pre-wrap break-words">
+                      {prompt.content}
+                    </p>
+                  </div>
+                  {/* Resize Handle */}
+                  <div
+                    className={cn(
+                      "flex items-center justify-center h-3 bg-background/50 rounded-b border-t cursor-ns-resize hover:bg-accent/50 transition-colors",
+                      isDragging && "bg-accent/70"
+                    )}
+                    onMouseDown={handleMouseDown}
+                    title="Drag to resize"
+                  >
+                    <GripHorizontal className="h-3 w-3 text-muted-foreground" />
+                  </div>
                 </div>
 
                 {/* All Tags */}
