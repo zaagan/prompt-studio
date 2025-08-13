@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } from 'el
 import { join } from 'path'
 import { readFileSync, existsSync } from 'fs'
 import { initDatabase, factoryReset } from './database/init'
+import McpServer from './mcp-server'
 import {
   getAllPrompts,
   getPrompt,
@@ -45,6 +46,7 @@ class PromptStudioApp {
   private menuBarWindow: BrowserWindow | null = null
   private tray: Tray | null = null
   private db: Database | null = null
+  private mcpServer: McpServer | null = null
   private currentMode: 'desktop' | 'menubar' = 'desktop'
   private readonly isDev: boolean = process.env.IS_DEV === 'true'
   private readonly enableDevTools: boolean = process.env.ENABLE_DEV_TOOLS === 'true'
@@ -92,6 +94,10 @@ class PromptStudioApp {
     try {
       // Initialize database
       this.db = await initDatabase()
+      
+      // Initialize MCP server with database
+      this.mcpServer = new McpServer(this.db as any)
+      console.log('MCP Server initialized successfully')
 
       // Load saved mode
       const savedMode = await getSetting(this.db, 'appMode')
@@ -578,6 +584,67 @@ class PromptStudioApp {
           error: error instanceof Error ? error.message : 'Unknown error'
         }
       }
+    })
+
+    // MCP Server handlers
+    ipcMain.handle('mcp-server:start', async (_event, config: any, exposedPrompts: any[]) => {
+      console.log('MCP Server start requested', { config, exposedPromptsCount: exposedPrompts?.length })
+      
+      if (!this.mcpServer) {
+        console.error('MCP server not initialized')
+        return { success: false, message: 'MCP server not initialized' }
+      }
+      
+      this.mcpServer.updateConfig(config)
+      this.mcpServer.updateExposedPrompts(exposedPrompts)
+      
+      const result = await this.mcpServer.start()
+      console.log('MCP Server start result:', result)
+      return result
+    })
+
+    ipcMain.handle('mcp-server:stop', async () => {
+      if (!this.mcpServer) {
+        return { success: false, message: 'MCP server not initialized' }
+      }
+      
+      const result = await this.mcpServer.stop()
+      return result
+    })
+
+    ipcMain.handle('mcp-server:status', async () => {
+      if (!this.mcpServer) {
+        return { running: false, message: 'MCP server not initialized' }
+      }
+      
+      return this.mcpServer.getStatus()
+    })
+
+    ipcMain.handle('mcp-server:update-config', async (_event, config: any) => {
+      if (!this.mcpServer) {
+        return { success: false, message: 'MCP server not initialized' }
+      }
+      
+      this.mcpServer.updateConfig(config)
+      return { success: true }
+    })
+
+    ipcMain.handle('mcp-server:update-exposed-prompts', async (_event, exposedPrompts: any[]) => {
+      if (!this.mcpServer) {
+        return { success: false, message: 'MCP server not initialized' }
+      }
+      
+      this.mcpServer.updateExposedPrompts(exposedPrompts)
+      return { success: true }
+    })
+
+    ipcMain.handle('mcp-server:clear-logs', async () => {
+      if (!this.mcpServer) {
+        return { success: false, message: 'MCP server not initialized' }
+      }
+      
+      this.mcpServer.clearLogs()
+      return { success: true }
     })
   }
 }

@@ -52,6 +52,17 @@ const electronAPI: ElectronAPI = {
   getCurrentMode: () => ipcRenderer.invoke('get-current-mode'),
   factoryReset: () => ipcRenderer.invoke('factory-reset'),
 
+  // MCP Server
+  startMcpServer: (config, exposedPrompts) => ipcRenderer.invoke('mcp-server:start', config, exposedPrompts),
+  stopMcpServer: () => ipcRenderer.invoke('mcp-server:stop'),
+  getMcpServerStatus: () => ipcRenderer.invoke('mcp-server:status'),
+  updateMcpServerConfig: (config) => ipcRenderer.invoke('mcp-server:update-config', config),
+  updateMcpServerExposedPrompts: (exposedPrompts) => ipcRenderer.invoke('mcp-server:update-exposed-prompts', exposedPrompts),
+  clearMcpServerLogs: () => ipcRenderer.invoke('mcp-server:clear-logs'),
+
+  // Generic IPC invoke method for flexibility
+  invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
+
   // Events
   onOpenPreferences: (callback) => ipcRenderer.on('open-preferences', callback),
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),

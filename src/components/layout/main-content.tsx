@@ -11,6 +11,7 @@ import { AdvancedSearchInput } from '../search/advanced-search-input'
 import { PromptList } from '../prompts/prompt-list'
 import { PromptGrid } from '../prompts/prompt-grid'
 import { TestingPanel } from '../testing/testing-panel'
+import { McpServerPanel } from '../mcp/mcp-server-panel'
 import { TemplateList } from '../templates/template-list-simple'
 import { usePromptStore } from '@/stores/usePromptStore'
 import type { SortOptions } from '@/types'
@@ -77,6 +78,7 @@ export function MainContent() {
                 <TabsTrigger value="prompts">Prompts</TabsTrigger>
                 <TabsTrigger value="templates">Templates</TabsTrigger>
                 <TabsTrigger value="testing">Testing</TabsTrigger>
+                <TabsTrigger value="mcp">MCP Server</TabsTrigger>
               </TabsList>
               
               {/* Info icons for each tab */}
@@ -120,6 +122,21 @@ export function MainContent() {
                       <p><strong>Parameter Tuning:</strong> Adjust temperature, max tokens, and other parameters to fine-tune responses.</p>
                       <p><strong>A/B Testing:</strong> Test multiple prompt variations to find the most effective one.</p>
                       <p><strong>Response Analysis:</strong> Evaluate and compare AI responses to improve your prompts.</p>
+                    </div>
+                  }
+                />
+              )}
+              
+              {activeTab === 'mcp' && (
+                <InfoIcon 
+                  title="MCP Server"
+                  description={
+                    <div className="space-y-2">
+                      <p>Expose your prompt library as an MCP (Model Context Protocol) server for integration with AI tools.</p>
+                      <p><strong>Server Management:</strong> Start and stop your MCP server with real-time status monitoring.</p>
+                      <p><strong>Prompt Exposure:</strong> Choose which prompts to make available to MCP clients.</p>
+                      <p><strong>Security & Auth:</strong> Configure API keys, rate limiting, and access controls.</p>
+                      <p><strong>Client Integration:</strong> Connect with Claude Desktop and other MCP-compatible applications.</p>
                     </div>
                   }
                 />
@@ -344,6 +361,10 @@ export function MainContent() {
 
           <TabsContent value="testing" className="h-full m-0">
             <TestingPanel />
+          </TabsContent>
+
+          <TabsContent value="mcp" className="h-full m-0">
+            <McpServerPanel />
           </TabsContent>
 
         </div>

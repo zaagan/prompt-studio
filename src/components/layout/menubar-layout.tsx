@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Search, Plus, X, Heart, Filter, Tag, Folder, Palette, Moon, Sun, Monitor } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, Plus, X, Heart, Filter, Tag, Folder, Palette, Moon, Sun, Monitor, Wifi, WifiOff, Play, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,8 @@ import AppIcon from '/assets/icon.png'
 
 export function MenuBarLayout() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [mcpServerStatus, setMcpServerStatus] = useState({ running: false, port: 0 })
+  const [isLoading, setIsLoading] = useState(false)
   
   const { theme, setTheme } = useTheme()
   
@@ -27,7 +29,10 @@ export function MenuBarLayout() {
     selectedPrompt,
     isPromptEditorOpen,
     categories,
-    tags
+    tags,
+    mcpConfig,
+    exposedPrompts,
+    addToast
   } = usePromptStore()
 
   const filteredPrompts = getFilteredPrompts()
@@ -139,6 +144,93 @@ export function MenuBarLayout() {
     closePromptEditor()
   }
 
+  // Check MCP server status
+  useEffect(() => {
+    const checkServerStatus = async () => {
+      try {
+        const status = await window.electronAPI.getMcpServerStatus()
+        setMcpServerStatus({
+          running: status.running,
+          port: status.port || 0
+        })
+      } catch (error) {
+        console.error('Failed to check MCP server status:', error)
+      }
+    }
+
+    // Initial check
+    checkServerStatus()
+
+    // Check every 3 seconds
+    const interval = setInterval(checkServerStatus, 3000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleStartMcpServer = async () => {
+    const exposedCount = exposedPrompts.filter(p => p.exposed).length
+    if (exposedCount === 0) {
+      addToast({
+        type: 'error',
+        title: 'Cannot Start Server',
+        description: 'Please expose at least one prompt in the MCP Server tab first'
+      })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const result = await window.electronAPI.startMcpServer(mcpConfig, exposedPrompts.filter(p => p.exposed))
+      
+      if (result.success) {
+        setMcpServerStatus({ running: true, port: result.port || mcpConfig.port })
+        addToast({
+          type: 'success',
+          title: 'MCP Server Started',
+          description: `Server running on port ${result.port || mcpConfig.port}`
+        })
+      } else {
+        throw new Error(result.message || 'Failed to start server')
+      }
+    } catch (error) {
+      console.error('Failed to start MCP server:', error)
+      addToast({
+        type: 'error',
+        title: 'Server Start Failed',
+        description: error instanceof Error ? error.message : 'Failed to start the MCP server'
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleStopMcpServer = async () => {
+    setIsLoading(true)
+    try {
+      const result = await window.electronAPI.stopMcpServer()
+      
+      if (result.success) {
+        setMcpServerStatus({ running: false, port: 0 })
+        addToast({
+          type: 'info',
+          title: 'MCP Server Stopped',
+          description: 'Server has been shut down successfully'
+        })
+      } else {
+        throw new Error(result.message || 'Failed to stop server')
+      }
+    } catch (error) {
+      console.error('Failed to stop MCP server:', error)
+      addToast({
+        type: 'error',
+        title: 'Server Stop Failed',
+        description: error instanceof Error ? error.message : 'Failed to stop the MCP server'
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   if (isPromptEditorOpen) {
     return (
       <div className="h-full bg-background">
@@ -160,6 +252,49 @@ export function MenuBarLayout() {
             />
             <h1 className="text-sm font-semibold">Prompt Studio</h1>
           </div>
+          
+          {/* MCP Server Controls - Grouped */}
+          <div className="flex items-center gap-0.5 bg-muted/50 rounded-md px-1.5 py-0.5">
+            {mcpServerStatus.running ? (
+              <Wifi className={cn("h-3 w-3 text-green-500", "animate-pulse")} />
+            ) : (
+              <WifiOff className="h-3 w-3 text-muted-foreground" />
+            )}
+            <Badge 
+              variant={mcpServerStatus.running ? "default" : "secondary"}
+              className={cn(
+                "text-xs h-3.5 px-1 ml-0.5",
+                mcpServerStatus.running && "bg-green-500 hover:bg-green-600"
+              )}
+            >
+              {mcpServerStatus.running ? mcpServerStatus.port : 'OFF'}
+            </Badge>
+            
+            {!mcpServerStatus.running ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleStartMcpServer}
+                disabled={isLoading}
+                className="h-4 w-4 p-0 ml-0.5 hover:bg-muted"
+                title="Start MCP Server"
+              >
+                <Play className="h-2.5 w-2.5" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleStopMcpServer}
+                disabled={isLoading}
+                className="h-4 w-4 p-0 ml-0.5 hover:bg-muted"
+                title="Stop MCP Server"
+              >
+                <Square className="h-2.5 w-2.5" />
+              </Button>
+            )}
+          </div>
+          
           <div className="flex items-center space-x-1">
             <Button
               variant="ghost"
