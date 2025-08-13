@@ -18,7 +18,7 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [justCopied, setJustCopied] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const [contentHeight, setContentHeight] = useState(128) // Default 128px (h-32)
+  const [contentHeight, setContentHeight] = useState(192) // Default 192px (h-48)
   const [isDragging, setIsDragging] = useState(false)
   
   const { updatePrompt, duplicatePrompt, addToast } = usePromptStore()
@@ -179,7 +179,7 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
 
               {/* Action Buttons */}
               {isHovered && (
-                <div className="flex items-center gap-0.5 shrink-0 transition-opacity duration-200 opacity-100">
+                <div className="flex items-center gap-1 shrink-0 transition-opacity duration-200 opacity-100">
                   {/* Expand/Collapse */}
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -187,13 +187,13 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-5 w-5 p-0"
+                        className="h-4 w-4 p-0"
                         onClick={toggleExpanded}
                       >
                         {isExpanded ? (
-                          <ChevronUp className="h-2.5 w-2.5" />
+                          <ChevronUp className="h-1.5 w-1.5" />
                         ) : (
-                          <ChevronDown className="h-2.5 w-2.5" />
+                          <ChevronDown className="h-1.5 w-1.5" />
                         )}
                       </Button>
                     </CollapsibleTrigger>
@@ -210,12 +210,12 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                       variant="ghost"
                       size="sm"
                       onClick={handleCopy}
-                      className="h-5 w-5 p-0"
+                      className="h-4 w-4 p-0"
                     >
                       {justCopied ? (
-                        <Check className="h-3 w-3 text-green-600" />
+                        <Check className="h-2 w-2 text-green-600" />
                       ) : (
-                        <Copy className="h-2.5 w-2.5" />
+                        <Copy className="h-1.5 w-1.5" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -231,10 +231,10 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                       variant="ghost"
                       size="sm"
                       onClick={handleFavoriteToggle}
-                      className="h-5 w-5 p-0"
+                      className="h-4 w-4 p-0"
                     >
                       <Heart className={cn(
-                        "h-3 w-3",
+                        "h-2 w-2",
                         prompt.is_favorite && "fill-current text-red-500"
                       )} />
                     </Button>
@@ -251,9 +251,9 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                       variant="ghost"
                       size="sm"
                       onClick={handleDuplicate}
-                      className="h-5 w-5 p-0"
+                      className="h-4 w-4 p-0"
                     >
-                      <Files className="h-2.5 w-2.5" />
+                      <Files className="h-1.5 w-1.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -268,9 +268,9 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                       variant="ghost"
                       size="sm"
                       onClick={handleEdit}
-                      className="h-5 w-5 p-0"
+                      className="h-4 w-4 p-0"
                     >
-                      <Edit className="h-2.5 w-2.5" />
+                      <Edit className="h-1.5 w-1.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
