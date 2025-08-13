@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Heart, Copy, ChevronDown, ChevronUp, Check, Edit, Calendar, Files } from 'lucide-react'
+import { Heart, Copy, ChevronDown, ChevronUp, Check, Edit, Calendar, Files, GripHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -18,6 +18,8 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [justCopied, setJustCopied] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [contentHeight, setContentHeight] = useState(128) // Default 128px (h-32)
+  const [isDragging, setIsDragging] = useState(false)
   
   const { updatePrompt, duplicatePrompt, addToast } = usePromptStore()
 
@@ -77,6 +79,29 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
     } catch {
       return 'Unknown'
     }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+    
+    const startY = e.clientY
+    const startHeight = contentHeight
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaY = e.clientY - startY
+      const newHeight = Math.max(80, Math.min(400, startHeight + deltaY)) // Min 80px, Max 400px
+      setContentHeight(newHeight)
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
   }
 
   return (
@@ -269,10 +294,26 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                 )}
                 
                 {/* Full Content */}
-                <div className="bg-background/50 rounded p-2 max-h-32 overflow-y-auto">
-                  <p className="text-xs font-mono whitespace-pre-wrap break-words">
-                    {prompt.content}
-                  </p>
+                <div className="relative">
+                  <div 
+                    className="bg-background/50 rounded-t p-2 overflow-y-auto border-b-0"
+                    style={{ height: `${contentHeight}px` }}
+                  >
+                    <p className="text-xs font-mono whitespace-pre-wrap break-words">
+                      {prompt.content}
+                    </p>
+                  </div>
+                  {/* Resize Handle */}
+                  <div
+                    className={cn(
+                      "flex items-center justify-center h-3 bg-background/50 rounded-b border-t cursor-ns-resize hover:bg-accent/50 transition-colors",
+                      isDragging && "bg-accent/70"
+                    )}
+                    onMouseDown={handleMouseDown}
+                    title="Drag to resize"
+                  >
+                    <GripHorizontal className="h-3 w-3 text-muted-foreground" />
+                  </div>
                 </div>
 
                 {/* All Tags */}
