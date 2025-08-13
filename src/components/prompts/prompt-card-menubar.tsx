@@ -96,9 +96,19 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
             {/* Header Row */}
             <div className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium line-clamp-1 pr-1">
-                  {prompt.title}
-                </h4>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <h4 className={cn(
+                      "text-sm font-medium line-clamp-1 cursor-help",
+                      isHovered ? "pr-1" : "pr-0"
+                    )}>
+                      {prompt.title}
+                    </h4>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" align="start">
+                    <p className="text-xs max-w-xs break-words">{prompt.title}</p>
+                  </TooltipContent>
+                </Tooltip>
                 
                 {/* Quick metadata */}
                 <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
@@ -143,11 +153,9 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
               </div>
 
               {/* Action Buttons */}
-              <div className={cn(
-                "flex items-center gap-0.5 shrink-0 transition-opacity duration-200",
-                isHovered ? "opacity-100" : "opacity-0"
-              )}>
-                {/* Expand/Collapse */}
+              {isHovered && (
+                <div className="flex items-center gap-0.5 shrink-0 transition-opacity duration-200 opacity-100">
+                  {/* Expand/Collapse */}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <CollapsibleTrigger asChild>
@@ -244,7 +252,8 @@ export function MenubarPromptCard({ prompt, onClick }: MenubarPromptCardProps) {
                     <p className="text-xs">Edit</p>
                   </TooltipContent>
                 </Tooltip>
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
