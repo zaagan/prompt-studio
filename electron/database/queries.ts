@@ -120,28 +120,63 @@ export const createPrompt = async (db: Database, prompt: CreatePromptData): Prom
 export const updatePrompt = async (db: Database, id: number, prompt: UpdatePromptData): Promise<Prompt> => {
   const { title, content, description, category_id, template_id, tags, is_favorite } = prompt
 
-  // Get current content to check if it changed
+  // Get current prompt to preserve existing values and check if content changed
   const currentPrompt = await getPrompt(db, id)
+  if (!currentPrompt) throw new Error('Prompt not found')
 
-  const sql = `
-    UPDATE prompts 
-    SET title = ?, content = ?, description = ?, category_id = ?, 
-        template_id = ?, tags = ?, is_favorite = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `
-  await runQuery(db, sql, [
-    title,
-    content,
-    description || null,
-    category_id || null,
-    template_id || null,
-    JSON.stringify(tags || []),
-    is_favorite || false,
-    id
-  ])
+  // Build dynamic SQL query with only provided fields
+  const updates: string[] = []
+  const values: any[] = []
+
+  if (title !== undefined) {
+    updates.push('title = ?')
+    values.push(title)
+  }
+
+  if (content !== undefined) {
+    updates.push('content = ?')
+    values.push(content)
+  }
+
+  if (description !== undefined) {
+    updates.push('description = ?')
+    values.push(description || null)
+  }
+
+  if (category_id !== undefined) {
+    updates.push('category_id = ?')
+    values.push(category_id || null)
+  }
+
+  if (template_id !== undefined) {
+    updates.push('template_id = ?')
+    values.push(template_id || null)
+  }
+
+  if (tags !== undefined) {
+    updates.push('tags = ?')
+    values.push(JSON.stringify(tags || []))
+  }
+
+  if (is_favorite !== undefined) {
+    updates.push('is_favorite = ?')
+    values.push(is_favorite)
+  }
+
+  if (updates.length === 0) {
+    // No updates to make, return current prompt
+    return currentPrompt
+  }
+
+  // Always update the timestamp
+  updates.push('updated_at = CURRENT_TIMESTAMP')
+  values.push(id) // Add id for WHERE clause
+
+  const sql = `UPDATE prompts SET ${updates.join(', ')} WHERE id = ?`
+  await runQuery(db, sql, values)
 
   // Create new version if content changed
-  if (currentPrompt && content && currentPrompt.content !== content) {
+  if (content !== undefined && currentPrompt.content !== content) {
     const versions = await getPromptVersions(db, id)
     await createPromptVersion(db, id, content, versions.length + 1)
   }

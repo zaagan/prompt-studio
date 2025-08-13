@@ -22,6 +22,9 @@ export function DesktopLayout() {
     closeSettings,
     closeTemplateEditor
   } = usePromptStore()
+  
+  // Determine if right panel should be shown
+  const showRightPanel = isPromptEditorOpen || isPromptViewerOpen || isTemplateEditorOpen
 
   return (
     <div className="h-screen bg-background overflow-hidden flex flex-col">
@@ -50,36 +53,32 @@ export function DesktopLayout() {
           <ResizablePanel defaultSize={80} minSize={50}>
             {isSettingsOpen ? (
               <SettingsView onClose={closeSettings} />
-            ) : (
+            ) : showRightPanel ? (
               <ResizablePanelGroup direction="horizontal">
                 {/* Prompt List and Content */}
-                <ResizablePanel 
-                  defaultSize={(isPromptEditorOpen || isPromptViewerOpen || isTemplateEditorOpen) ? 60 : 100}
-                  minSize={40}
-                >
+                <ResizablePanel defaultSize={60} minSize={40}>
                   <MainContent />
                 </ResizablePanel>
 
                 {/* Right Panel - Editor or Viewer */}
-                {(isPromptEditorOpen || isPromptViewerOpen || isTemplateEditorOpen) && (
-                  <>
-                    <ResizableHandle withHandle />
-                    <ResizablePanel defaultSize={40} minSize={30} maxSize={70}>
-                      {isPromptEditorOpen ? (
-                        <PromptEditor />
-                      ) : isTemplateEditorOpen ? (
-                        <TemplateEditor />
-                      ) : isPromptViewerOpen && selectedPrompt ? (
-                        <PromptViewer 
-                          key={selectedPrompt.id} // Force re-render when prompt changes
-                          prompt={selectedPrompt} 
-                          onClose={closePromptViewer}
-                        />
-                      ) : null}
-                    </ResizablePanel>
-                  </>
-                )}
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={40} minSize={30} maxSize={70}>
+                  {isPromptEditorOpen ? (
+                    <PromptEditor />
+                  ) : isTemplateEditorOpen ? (
+                    <TemplateEditor />
+                  ) : isPromptViewerOpen && selectedPrompt ? (
+                    <PromptViewer 
+                      key={selectedPrompt.id} // Force re-render when prompt changes
+                      prompt={selectedPrompt} 
+                      onClose={closePromptViewer}
+                    />
+                  ) : null}
+                </ResizablePanel>
               </ResizablePanelGroup>
+            ) : (
+              // When no right panel is open, just show main content
+              <MainContent />
             )}
           </ResizablePanel>
         </ResizablePanelGroup>

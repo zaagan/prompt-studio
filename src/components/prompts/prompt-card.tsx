@@ -112,7 +112,7 @@ export function PromptCard({
   }
 
   const isCardVariant = variant === 'card'
-  const shouldCompact = compact || isCardVariant
+  const shouldCompact = compact
 
   const cardContent = (
     <>
@@ -146,15 +146,15 @@ export function PromptCard({
             size="sm"
             onClick={handleCopy}
             className={cn(
-              "h-6 w-6 p-0",
+              "h-6 w-6 p-0 flex items-center justify-center",
               isCardVariant ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100",
               "transition-opacity"
             )}
           >
             {justCopied ? (
-              <Check className="h-3 w-3 text-green-600" />
+              <Check className="h-3.5 w-3.5 text-green-600" />
             ) : (
-              <Copy className="h-3 w-3" />
+              <Copy className="h-3.5 w-3.5" />
             )}
           </Button>
 
@@ -163,13 +163,13 @@ export function PromptCard({
             size="sm"
             onClick={handleFavoriteToggle}
             className={cn(
-              "h-6 w-6 p-0",
+              "h-6 w-6 p-0 flex items-center justify-center",
               isCardVariant ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100",
               "transition-opacity"
             )}
           >
             <Heart className={cn(
-              "h-3 w-3",
+              "h-3.5 w-3.5",
               prompt.is_favorite && "fill-current text-red-500"
             )} />
           </Button>
@@ -180,9 +180,13 @@ export function PromptCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className={cn(
+                    "h-6 w-6 p-0 flex items-center justify-center",
+                    isCardVariant ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100",
+                    "transition-opacity"
+                  )}
                 >
-                  <MoreVertical className="h-3 w-3" />
+                  <MoreVertical className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -235,7 +239,7 @@ export function PromptCard({
           )}
           
           <div className="flex items-center gap-1 flex-shrink-0">
-            <Calendar className="h-3 w-3" />
+            <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
             <span className="hidden sm:inline text-[11px]">{formatDate(prompt.updated_at)}</span>
             <span className="sm:hidden text-[11px]">{formatDate(prompt.updated_at).replace(' ago', '')}</span>
           </div>

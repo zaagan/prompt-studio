@@ -37,10 +37,12 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     setSearchFilters,
     deleteCategory,
     addToast,
-    openSettings
+    openSettings,
+    getRecentlyInteractedPrompts,
+    openPromptViewer
   } = usePromptStore()
 
-  const recentPrompts = prompts.slice(0, 5)
+  const recentPrompts = getRecentlyInteractedPrompts().slice(0, 5)
   const favoritePrompts = prompts.filter(p => p.is_favorite)
   
   // Parse current search query to get active filters
@@ -288,8 +290,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           )}
 
           {/* Recent Prompts */}
-          {recentPrompts.length > 0 && (
-            <DropdownMenu>
+          <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
@@ -303,23 +304,28 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 </TooltipContent>
               </Tooltip>
               <DropdownMenuContent side="right" align="start" className="w-56">
-                {recentPrompts.map((prompt) => (
-                  <DropdownMenuItem 
-                    key={prompt.id}
-                    onClick={() => usePromptStore.getState().openPromptViewer(prompt)}
-                    className="flex flex-col items-start p-2"
-                  >
-                    <div className="font-medium text-sm truncate w-full">{prompt.title}</div>
-                    {prompt.description && (
-                      <div className="text-xs text-muted-foreground truncate w-full mt-1">
-                        {prompt.description}
-                      </div>
-                    )}
-                  </DropdownMenuItem>
-                ))}
+                {recentPrompts.length > 0 ? (
+                  recentPrompts.map((prompt) => (
+                    <DropdownMenuItem 
+                      key={prompt.id}
+                      onClick={() => openPromptViewer(prompt)}
+                      className="flex flex-col items-start p-2"
+                    >
+                      <div className="font-medium text-sm truncate w-full">{prompt.title}</div>
+                      {prompt.description && (
+                        <div className="text-xs text-muted-foreground truncate w-full mt-1">
+                          {prompt.description}
+                        </div>
+                      )}
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No recent interactions
+                  </div>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
 
           <div className="flex-1" />
           
@@ -577,8 +583,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           )}
 
           {/* Recent */}
-          {recentPrompts.length > 0 && (
-            <Collapsible 
+          <Collapsible 
               open={sectionsOpen.recent}
               onOpenChange={() => toggleSection('recent')}
             >
@@ -597,20 +602,25 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-1 ml-6">
-                {recentPrompts.map((prompt) => (
-                  <Button
-                    key={prompt.id}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => usePromptStore.getState().selectPrompt(prompt)}
-                    className="w-full justify-start h-7 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <span className="truncate">{prompt.title}</span>
-                  </Button>
-                ))}
+                {recentPrompts.length > 0 ? (
+                  recentPrompts.map((prompt) => (
+                    <Button
+                      key={prompt.id}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openPromptViewer(prompt)}
+                      className="w-full justify-start h-7 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <span className="truncate">{prompt.title}</span>
+                    </Button>
+                  ))
+                ) : (
+                  <div className="text-xs text-muted-foreground px-2">
+                    No recent prompts
+                  </div>
+                )}
               </CollapsibleContent>
             </Collapsible>
-          )}
         </div>
       </ScrollArea>
 

@@ -940,23 +940,46 @@ const createPrompt = async (db, prompt) => {
 const updatePrompt = async (db, id, prompt) => {
   const { title, content, description, category_id, template_id, tags, is_favorite } = prompt;
   const currentPrompt = await getPrompt(db, id);
-  const sql = `
-    UPDATE prompts 
-    SET title = ?, content = ?, description = ?, category_id = ?, 
-        template_id = ?, tags = ?, is_favorite = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `;
-  await runQuery(db, sql, [
-    title,
-    content,
-    description || null,
-    category_id || null,
-    template_id || null,
-    JSON.stringify(tags || []),
-    is_favorite || false,
-    id
-  ]);
-  if (currentPrompt && content && currentPrompt.content !== content) {
+  if (!currentPrompt)
+    throw new Error("Prompt not found");
+  const updates = [];
+  const values = [];
+  if (title !== void 0) {
+    updates.push("title = ?");
+    values.push(title);
+  }
+  if (content !== void 0) {
+    updates.push("content = ?");
+    values.push(content);
+  }
+  if (description !== void 0) {
+    updates.push("description = ?");
+    values.push(description || null);
+  }
+  if (category_id !== void 0) {
+    updates.push("category_id = ?");
+    values.push(category_id || null);
+  }
+  if (template_id !== void 0) {
+    updates.push("template_id = ?");
+    values.push(template_id || null);
+  }
+  if (tags !== void 0) {
+    updates.push("tags = ?");
+    values.push(JSON.stringify(tags || []));
+  }
+  if (is_favorite !== void 0) {
+    updates.push("is_favorite = ?");
+    values.push(is_favorite);
+  }
+  if (updates.length === 0) {
+    return currentPrompt;
+  }
+  updates.push("updated_at = CURRENT_TIMESTAMP");
+  values.push(id);
+  const sql = `UPDATE prompts SET ${updates.join(", ")} WHERE id = ?`;
+  await runQuery(db, sql, values);
+  if (content !== void 0 && currentPrompt.content !== content) {
     const versions = await getPromptVersions(db, id);
     await createPromptVersion(db, id, content, versions.length + 1);
   }

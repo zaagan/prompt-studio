@@ -52,6 +52,9 @@ interface PromptStore {
   // Draft persistence
   draftFormData: any
   
+  // Recently interacted prompts (IDs in order of interaction)
+  recentlyInteractedIds: number[]
+  
   // Actions
   // Data fetching
   fetchPrompts: () => Promise<void>
@@ -82,6 +85,7 @@ interface PromptStore {
   setSearchFilters: (filters: Partial<SearchFilters>) => void
   setSortOptions: (options: Partial<SortOptions>) => void
   getFilteredPrompts: () => readonly Prompt[]
+  getRecentlyInteractedPrompts: () => readonly Prompt[]
   searchPrompts: (query: string) => Promise<void>
   
   // Template search
@@ -203,6 +207,18 @@ const persistViewMode = (key: string, mode: 'list' | 'grid') => {
   }
 }
 
+// Track recently interacted prompts
+const MAX_RECENT_ITEMS = 10
+const trackInteraction = (promptId: number, currentIds: number[]): number[] => {
+  // Remove the ID if it already exists
+  const filtered = currentIds.filter(id => id !== promptId)
+  // Add to the beginning
+  const updated = [promptId, ...filtered].slice(0, MAX_RECENT_ITEMS)
+  // Persist to localStorage
+  localStorage.setItem('recentlyInteractedPrompts', JSON.stringify(updated))
+  return updated
+}
+
 export const usePromptStore = create<PromptStore>()(
   devtools(
     (set, get) => ({
@@ -241,6 +257,7 @@ export const usePromptStore = create<PromptStore>()(
       
       toasts: [],
       draftFormData: getStoredDraftFormData(),
+      recentlyInteractedIds: JSON.parse(localStorage.getItem('recentlyInteractedPrompts') || '[]'),
 
       // Data fetching actions
       fetchPrompts: async () => {
@@ -342,12 +359,17 @@ export const usePromptStore = create<PromptStore>()(
         try {
           set({ loading: true, error: null })
           const updatedPrompt = await window.electronAPI.updatePrompt(id, data)
-          const { prompts } = get()
+          const { prompts, recentlyInteractedIds } = get()
           const updatedPrompts = prompts.map(p => p.id === id ? updatedPrompt : p)
+          
+          // Track interaction (edit or favorite)
+          const updatedRecentIds = trackInteraction(id, recentlyInteractedIds)
+          
           set({ 
             prompts: updatedPrompts,
             selectedPrompt: updatedPrompt,
-            loading: false 
+            loading: false,
+            recentlyInteractedIds: updatedRecentIds
           })
           // Clear editor persistence after successful save
           clearPersistedEditorState()
@@ -718,6 +740,21 @@ export const usePromptStore = create<PromptStore>()(
 
         return filtered as readonly Prompt[]
       },
+      
+      getRecentlyInteractedPrompts: () => {
+        const { prompts, recentlyInteractedIds } = get()
+        const recentPrompts: Prompt[] = []
+        
+        // Get prompts in the order of recent interaction
+        for (const id of recentlyInteractedIds) {
+          const prompt = prompts.find(p => p.id === id)
+          if (prompt) {
+            recentPrompts.push(prompt)
+          }
+        }
+        
+        return recentPrompts as readonly Prompt[]
+      },
 
       searchPrompts: async (query: string) => {
         try {
@@ -738,9 +775,19 @@ export const usePromptStore = create<PromptStore>()(
       // UI actions
       openPromptEditor: (prompt?: Prompt) => {
         const selectedPrompt = prompt || null
+        const { recentlyInteractedIds } = get()
+        
+        // Track interaction if editing existing prompt
+        const updatedRecentIds = selectedPrompt 
+          ? trackInteraction(selectedPrompt.id, recentlyInteractedIds)
+          : recentlyInteractedIds
+        
         set({ 
           selectedPrompt,
-          isPromptEditorOpen: true 
+          isPromptEditorOpen: true,
+          isPromptViewerOpen: false, // Close viewer if open
+          isTemplateEditorOpen: false, // Close template editor if open
+          recentlyInteractedIds: updatedRecentIds
         })
         persistEditorState(true, selectedPrompt)
       },
@@ -754,10 +801,17 @@ export const usePromptStore = create<PromptStore>()(
       },
 
       openPromptViewer: (prompt: Prompt) => {
+        const { recentlyInteractedIds } = get()
+        
+        // Track interaction (viewing)
+        const updatedRecentIds = trackInteraction(prompt.id, recentlyInteractedIds)
+        
         set({ 
           selectedPrompt: prompt,
           isPromptViewerOpen: true,
-          isPromptEditorOpen: false // Close editor if open
+          isPromptEditorOpen: false, // Close editor if open
+          isTemplateEditorOpen: false, // Close template editor if open
+          recentlyInteractedIds: updatedRecentIds
         })
       },
 

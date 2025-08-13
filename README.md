@@ -2,7 +2,13 @@
 
 A powerful desktop application for managing, organizing, and testing AI prompts efficiently. Built with Electron and SQLite, Prompt Studio provides both desktop and menu bar modes for seamless prompt management.
 
-![Prompt Studio](assets/screenshot.png)
+## 📸 Screenshots
+
+### Desktop Mode
+![Prompt Studio Desktop Mode](assets/screenshot.png)
+
+### Menu Bar Mode
+![Prompt Studio Menu Bar Mode](assets/screenshot-menubar.png)
 
 ## ✨ Features
 
