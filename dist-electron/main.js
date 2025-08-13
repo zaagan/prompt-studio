@@ -1423,11 +1423,6 @@ class PromptStudioApp {
       },
       { type: "separator" },
       {
-        label: "Preferences",
-        click: () => this.openPreferences()
-      },
-      { type: "separator" },
-      {
         label: "Quit",
         click: () => {
           this.isQuitting = true;
@@ -1557,11 +1552,6 @@ class PromptStudioApp {
         type: "radio",
         checked: this.currentMode === "menubar",
         click: () => this.switchMode("menubar")
-      },
-      { type: "separator" },
-      {
-        label: "Preferences",
-        click: () => this.openPreferences()
       },
       { type: "separator" },
       {

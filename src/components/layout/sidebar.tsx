@@ -45,6 +45,20 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const recentPrompts = getRecentlyInteractedPrompts().slice(0, 5)
   const favoritePrompts = prompts.filter(p => p.is_favorite)
   
+  // Calculate prompt counts per category
+  const getCategoryPromptCount = (categoryId: number) => {
+    return prompts.filter(p => p.category_id === categoryId).length
+  }
+  
+  const getAllCategoriesPromptCount = () => {
+    return prompts.length
+  }
+  
+  // Calculate prompt counts per tag
+  const getTagPromptCount = (tag: string) => {
+    return prompts.filter(p => p.tags.includes(tag)).length
+  }
+  
   // Parse current search query to get active filters
   const currentParsedQuery = parseSearchQuery(searchFilters.query || '')
 
@@ -217,21 +231,32 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
               </TooltipContent>
             </Tooltip>
             <DropdownMenuContent side="right" align="start">
-              <DropdownMenuItem onClick={() => handleCategoryFilter(null)}>
-                <Folder className="h-4 w-4 mr-2" />
-                All Categories
+              <DropdownMenuItem onClick={() => handleCategoryFilter(null)} className="justify-between">
+                <div className="flex items-center flex-1">
+                  <Folder className="h-4 w-4 mr-2" />
+                  All Categories
+                </div>
+                <span className="bg-secondary text-secondary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none min-w-[18px] text-center">
+                  {getAllCategoriesPromptCount()}
+                </span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {categories.map((category) => (
                 <DropdownMenuItem 
                   key={category.id}
                   onClick={() => handleCategoryFilter(category.id)}
+                  className="justify-between"
                 >
-                  <div 
-                    className="h-2 w-2 rounded-full mr-2"
-                    style={{ backgroundColor: category.color }}
-                  />
-                  {category.name}
+                  <div className="flex items-center flex-1">
+                    <div 
+                      className="h-2 w-2 rounded-full mr-2"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    {category.name}
+                  </div>
+                  <span className="bg-secondary text-secondary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none min-w-[18px] text-center">
+                    {getCategoryPromptCount(category.id)}
+                  </span>
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
@@ -275,14 +300,20 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                     key={tag}
                     onClick={() => handleTagFilter(tag)}
                     className={cn(
+                      "justify-between",
                       currentParsedQuery.tags.includes(tag) && "bg-secondary"
                     )}
                   >
-                    <Tag className="h-3 w-3 mr-2" />
-                    {tag}
-                    {currentParsedQuery.tags.includes(tag) && (
-                      <div className="ml-auto h-2 w-2 rounded-full bg-primary" />
-                    )}
+                    <div className="flex items-center flex-1">
+                      <Tag className="h-3 w-3 mr-2" />
+                      {tag}
+                      {currentParsedQuery.tags.includes(tag) && (
+                        <div className="ml-2 h-2 w-2 rounded-full bg-primary" />
+                      )}
+                    </div>
+                    <span className="bg-secondary text-secondary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none min-w-[18px] text-center">
+                      {getTagPromptCount(tag)}
+                    </span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -467,7 +498,10 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 onClick={() => handleCategoryFilter(null)}
                 className="w-full justify-start h-7 text-xs"
               >
-                All Categories
+                <span className="text-left">All Categories</span>
+                <span className="bg-secondary text-secondary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none min-w-[18px] text-center flex-shrink-0 ml-2">
+                  {getAllCategoriesPromptCount()}
+                </span>
               </Button>
               {categories.map((category) => (
                 <div key={category.id} className="group">
@@ -484,7 +518,10 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                             className="h-2 w-2 rounded-full mr-2 shrink-0"
                             style={{ backgroundColor: category.color }}
                           />
-                          <span className="truncate">{category.name}</span>
+                          <span className="truncate text-left">{category.name}</span>
+                          <span className="bg-secondary text-secondary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none min-w-[18px] text-center flex-shrink-0 ml-2 mr-1">
+                            {getCategoryPromptCount(category.id)}
+                          </span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -575,7 +612,10 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                     className="w-full justify-start h-7 text-xs"
                   >
                     <Tag className="h-3 w-3 mr-2" />
-                    <span className="truncate">{tag}</span>
+                    <span className="truncate text-left">{tag}</span>
+                    <span className="bg-secondary text-secondary-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none min-w-[18px] text-center flex-shrink-0 ml-2">
+                      {getTagPromptCount(tag)}
+                    </span>
                   </Button>
                 ))}
               </CollapsibleContent>
